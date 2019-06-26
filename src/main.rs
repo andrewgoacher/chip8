@@ -1,17 +1,16 @@
 extern crate lib_chip;
-use lib_chip::screen::{ScreenParams, Screen, ConsoleBuilder};
+use lib_chip::screen::{Screen,builder::{ScreenParams}};
 
 use std::thread;
 use std::time::Duration;
 
 fn main() {
-    println!("Hello, world!");
-    const Width:i32 = 20i32;
-    const Height:i32 = 20i32;
+    const WIDTH:i32 = 64i32;
+    const HEIGHT:i32 = 32i32;
 
     let mut screen = ScreenParams::new()
-        .with_height(Height)
-        .with_width(Width)
+        .with_height(HEIGHT)
+        .with_width(WIDTH)
         .for_console()
         .build();
 
@@ -21,12 +20,12 @@ fn main() {
 
     loop {
         for _ in 0..5 {
-            if x == 20 {
+            if x == WIDTH {
                 x = 0;
                 y += 1;
             }
 
-            if y == 20 {
+            if y == HEIGHT {
                 y = 0;
                 x = 0;
                 on = !on;

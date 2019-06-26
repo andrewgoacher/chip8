@@ -34,9 +34,9 @@ impl Screen for ConsoleScreen {
         let off_style = Style::new().bg(console::Color::Yellow);
         let mut strings: Vec<String> = Vec::new();
 
-        for w in 0..self.width {
-            for h in 0..self.height {
-                let idx = ((self.width * w) + h) as usize;
+        for h in 0..self.height {
+            for w in 0..self.width {
+                let idx = ((self.width * h) + w) as usize;
                 let flag = self.display[idx];
                 if flag {
                     strings.push(format!("{}", on_style.apply_to("  ")));
