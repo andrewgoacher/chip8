@@ -4,16 +4,54 @@ use lib_chip::screen::{Screen,builder::{ScreenParams}};
 use std::thread;
 use std::time::Duration;
 
-fn main() {
-    const WIDTH:i32 = 64i32;
-    const HEIGHT:i32 = 32i32;
+fn start_banner(screen: &mut Screen) {
+    screen.off();
+    write_c(screen);
+}
 
-    let mut screen = ScreenParams::new()
-        .with_height(HEIGHT)
-        .with_width(WIDTH)
-        .for_console()
-        .build();
+fn write_c(screen: &mut Screen) {
+    // C
+    screen.set_pixel(16, 9, true);
+    screen.set_pixel(17, 9, true);
 
+    screen.set_pixel(18, 9, true);
+    screen.set_pixel(19, 9, true);
+
+    screen.set_pixel(20, 9, true);
+    screen.set_pixel(21, 9, true);
+
+    screen.set_pixel(22, 9, true);
+    screen.set_pixel(23, 9, true);
+
+    screen.set_pixel(16, 10, true);
+    screen.set_pixel(16, 11, true);
+
+    screen.set_pixel(16, 12, true);
+    screen.set_pixel(16, 13, true);
+
+    screen.set_pixel(16, 14, true);
+    screen.set_pixel(16, 15, true);
+
+    screen.set_pixel(16, 16, true);
+    screen.set_pixel(16, 17, true);
+
+    screen.set_pixel(16, 18, true);
+    screen.set_pixel(16, 18, true);
+
+    screen.set_pixel(16, 18, true);
+    screen.set_pixel(17, 18, true);
+
+    screen.set_pixel(18, 18, true);
+    screen.set_pixel(19, 18, true);
+
+    screen.set_pixel(20, 18, true);
+    screen.set_pixel(21, 18, true);
+
+    screen.set_pixel(22, 18, true);
+    screen.set_pixel(23, 18, true);
+}
+
+fn tick(screen: &mut Screen, width: i32, height: i32) {
     let mut on = true;
     let mut x: i32 = 0;
     let mut y: i32 = 0;
@@ -21,12 +59,12 @@ fn main() {
 
     while total_time < 1500 {
         for _ in 0..5 {
-            if x == WIDTH {
+            if x == width {
                 x = 0;
                 y += 1;
             }
 
-            if y == HEIGHT {
+            if y == height {
                 y = 0;
                 x = 0;
                 on = !on;
@@ -39,4 +77,18 @@ fn main() {
         total_time += 10;
     }
     screen.clear();
+}
+
+fn main() {
+    const WIDTH:i32 = 64i32;
+    const HEIGHT:i32 = 32i32;
+
+    let mut screen = ScreenParams::new()
+        .with_height(HEIGHT)
+        .with_width(WIDTH)
+        .for_console()
+        .build();
+
+    start_banner(&mut screen);
+    screen.draw();
 }

@@ -8,7 +8,7 @@ pub struct ConsoleScreen {
     width: i32,
     height: i32,
     first_run: bool,
-    terminal: console::Term
+    terminal: console::Term,
 }
 
 impl ConsoleScreen {
@@ -18,20 +18,23 @@ impl ConsoleScreen {
             width: width,
             height: height,
             first_run: true,
-            terminal: Term::buffered_stdout()
+            terminal: Term::buffered_stdout(),
         }
     }
 }
 
 impl Screen for ConsoleScreen {
     fn clear(&self) {
-        self.terminal.clear_screen().expect("terminal failed to clear");
+        self.terminal
+            .clear_screen()
+            .expect("terminal failed to clear");
         self.terminal.flush().expect("Error flushing after clear")
     }
 
     fn draw(&mut self) {
         if !self.first_run {
-            self.terminal.move_cursor_up(self.height as usize)
+            self.terminal
+                .move_cursor_up(self.height as usize)
                 .expect("Failed to move the cursor");
         }
         self.first_run = false;
@@ -50,7 +53,8 @@ impl Screen for ConsoleScreen {
                     strings.push(format!("{}", off_style.apply_to("  ")));
                 }
             }
-            self.terminal.write_line(&strings.join(""))
+            self.terminal
+                .write_line(&strings.join(""))
                 .expect("Failed to write output");
             strings.clear();
             self.terminal.flush().expect("failed to flush terminal");
@@ -58,18 +62,18 @@ impl Screen for ConsoleScreen {
     }
 
     fn on(&mut self) {
-        for w in 0..self.width {
-            for h in 0..self.height {
-                let idx = ((self.width * w) + h) as usize;
+        for h in 0..self.height {
+            for w in 0..self.width {
+                let idx = ((self.width * h) + w) as usize;
                 self.display[idx] = true;
             }
         }
     }
 
     fn off(&mut self) {
-        for w in 0..self.width {
-            for h in 0..self.height {
-                let idx = ((self.width * w) + h) as usize;
+        for h in 0..self.height {
+            for w in 0..self.width {
+                let idx = ((self.width * h) + w) as usize;
                 self.display[idx] = false;
             }
         }
