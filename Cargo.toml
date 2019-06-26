@@ -6,7 +6,7 @@ edition = "2018"
 
 [lib]
 name = "lib_chip"
-path = "libChip/lib.rs"
+path = "lib_chip/lib.rs"
 
 [[bin]]
 name = "chip8"
