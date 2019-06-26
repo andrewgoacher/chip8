@@ -1,12 +1,7 @@
 use console::Style;
 use console::Term;
 
-pub trait Screen {
-    fn draw(&mut self);
-    fn on(&mut self);
-    fn off(&mut self);
-    fn set_pixel(&mut self, x: i32, y: i32, on: bool);
-}
+use super::Screen;
 
 pub struct ConsoleScreen {
     display: Vec<bool>,
@@ -16,7 +11,7 @@ pub struct ConsoleScreen {
 }
 
 impl ConsoleScreen {
-    pub fn new(width: i32, height: i32) -> ConsoleScreen {
+    pub fn new(width: i32, height: i32) -> Self {
         ConsoleScreen {
             display: vec![false; (width * height) as usize],
             width: width,
@@ -32,8 +27,6 @@ impl Screen for ConsoleScreen {
         if !self.first_run {
             term.move_cursor_up(self.height as usize)
                 .expect("Some error here");
-            // term.clear_screen().expect("clear screen");
-            // term.flush().expect("flushy");
         }
         self.first_run = false;
 
