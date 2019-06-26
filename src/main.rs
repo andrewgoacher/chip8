@@ -17,8 +17,9 @@ fn main() {
     let mut on = true;
     let mut x: i32 = 0;
     let mut y: i32 = 0;
+    let mut total_time: i32 = 0;
 
-    loop {
+    while total_time < 1500 {
         for _ in 0..5 {
             if x == WIDTH {
                 x = 0;
@@ -35,5 +36,7 @@ fn main() {
         }
         thread::sleep(Duration::from_millis(10));
         screen.draw();
+        total_time += 10;
     }
+    screen.clear();
 }

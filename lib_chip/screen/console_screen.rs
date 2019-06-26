@@ -8,6 +8,7 @@ pub struct ConsoleScreen {
     width: i32,
     height: i32,
     first_run: bool,
+    terminal: console::Term
 }
 
 impl ConsoleScreen {
@@ -17,16 +18,21 @@ impl ConsoleScreen {
             width: width,
             height: height,
             first_run: true,
+            terminal: Term::buffered_stdout()
         }
     }
 }
 
 impl Screen for ConsoleScreen {
+    fn clear(&self) {
+        self.terminal.clear_screen().expect("terminal failed to clear");
+        self.terminal.flush().expect("Error flushing after clear")
+    }
+
     fn draw(&mut self) {
-        let term = Term::buffered_stdout();
         if !self.first_run {
-            term.move_cursor_up(self.height as usize)
-                .expect("Some error here");
+            self.terminal.move_cursor_up(self.height as usize)
+                .expect("Failed to move the cursor");
         }
         self.first_run = false;
 
@@ -44,10 +50,10 @@ impl Screen for ConsoleScreen {
                     strings.push(format!("{}", off_style.apply_to("  ")));
                 }
             }
-            term.write_line(&strings.join(""))
-                .expect("Error expectedly errored");
+            self.terminal.write_line(&strings.join(""))
+                .expect("Failed to write output");
             strings.clear();
-            term.flush().expect("FLUHSY");
+            self.terminal.flush().expect("failed to flush terminal");
         }
     }
 
