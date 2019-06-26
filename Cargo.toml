@@ -1,0 +1,16 @@
+[package]
+name = "chip8"
+version = "0.1.0"
+authors = ["Andrew Goacher <andrewgoacher@outlook.com>"]
+edition = "2018"
+
+[lib]
+name = "lib_chip"
+path = "libChip/lib.rs"
+
+[[bin]]
+name = "chip8"
+path = "src/main.rs"
+
+[dependencies]
+console = "0.7.7"
