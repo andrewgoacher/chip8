@@ -6,12 +6,12 @@ use std::time::Duration;
 
 fn main() {
     println!("Hello, world!");
-    const width:i32 = 20i32;
-    const height:i32 = 20i32;
-    
+    const Width:i32 = 20i32;
+    const Height:i32 = 20i32;
+
     let mut screen = ScreenParams::new()
-        .with_height(height)
-        .with_width(width)
+        .with_height(Height)
+        .with_width(Width)
         .for_console()
         .build();
 
