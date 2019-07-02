@@ -1,53 +1,63 @@
 extern crate lib_chip;
-use lib_chip::screen::{Screen,builder::{ScreenParams}};
+use lib_chip::{
+    screen::{Screen,builder::{ScreenParams}},
+    chip_8::Chip8
+};
 
 use std::thread;
 use std::time::Duration;
 
 fn start_banner(screen: &mut Screen) {
     screen.off();
-    write_c(screen);
-}
-
-fn write_c(screen: &mut Screen) {
-    // C
+    
     screen.set_pixel(16, 9, true);
     screen.set_pixel(17, 9, true);
-
     screen.set_pixel(18, 9, true);
-    screen.set_pixel(19, 9, true);
-
     screen.set_pixel(20, 9, true);
-    screen.set_pixel(21, 9, true);
-
     screen.set_pixel(22, 9, true);
-    screen.set_pixel(23, 9, true);
+    screen.set_pixel(24, 9, true);
+    screen.set_pixel(26, 9, true);
+    screen.set_pixel(27, 9, true);
+    screen.set_pixel(28, 9, true);
 
     screen.set_pixel(16, 10, true);
+    screen.set_pixel(20, 10, true);
+    screen.set_pixel(21, 10, true);
+    screen.set_pixel(22, 10, true);
+    screen.set_pixel(24, 10, true);
+    screen.set_pixel(26, 10, true);
+    screen.set_pixel(27, 10, true);
+    screen.set_pixel(28, 10, true);
+
     screen.set_pixel(16, 11, true);
+    screen.set_pixel(20, 11, true);
+    screen.set_pixel(22, 11, true);
+    screen.set_pixel(24, 11, true);
+    screen.set_pixel(26, 11, true);
 
     screen.set_pixel(16, 12, true);
-    screen.set_pixel(16, 13, true);
+    screen.set_pixel(17, 12, true);
+    screen.set_pixel(18, 12, true);
+    screen.set_pixel(20, 12, true);
+    screen.set_pixel(22, 12, true);
+    screen.set_pixel(24, 12, true);
+    screen.set_pixel(26, 12, true);
 
-    screen.set_pixel(16, 14, true);
-    screen.set_pixel(16, 15, true);
+    screen.set_pixel(21, 15, true);
+    screen.set_pixel(22, 15, true);
+    screen.set_pixel(23, 15, true);
 
-    screen.set_pixel(16, 16, true);
-    screen.set_pixel(16, 17, true);
+    screen.set_pixel(21, 17, true);
+    screen.set_pixel(22, 17, true);
+    screen.set_pixel(23, 17, true);
 
-    screen.set_pixel(16, 18, true);
-    screen.set_pixel(16, 18, true);
+    screen.set_pixel(21, 19, true);
+    screen.set_pixel(22, 19, true);
+    screen.set_pixel(23, 19, true);
 
-    screen.set_pixel(16, 18, true);
-    screen.set_pixel(17, 18, true);
-
-    screen.set_pixel(18, 18, true);
-    screen.set_pixel(19, 18, true);
-
-    screen.set_pixel(20, 18, true);
+    screen.set_pixel(21, 16, true);
+    screen.set_pixel(23, 16, true);
     screen.set_pixel(21, 18, true);
-
-    screen.set_pixel(22, 18, true);
     screen.set_pixel(23, 18, true);
 }
 
@@ -88,7 +98,7 @@ fn main() {
         .with_width(WIDTH)
         .for_console()
         .build();
-
-    start_banner(&mut screen);
-    screen.draw();
+        
+    let mut chip8 = Chip8::new(Box::new(screen));
+    chip8.run();
 }
