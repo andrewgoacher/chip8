@@ -4,31 +4,32 @@ use console::Term;
 use super::Screen;
 
 pub struct ConsoleScreen {
-    display: Vec<bool>,
+    display: Vec<u32>,
     width: i32,
     height: i32,
     first_run: bool,
     terminal: console::Term,
+    clear_color: u32,
 }
-
 impl ConsoleScreen {
-    pub fn new(width: i32, height: i32) -> Self {
+        pub fn new(width: i32, height: i32, clear_color: u32) -> Self {
         ConsoleScreen {
-            display: vec![false; (width * height) as usize],
+            display: vec![0; (width * height) as usize],
             width: width,
             height: height,
             first_run: true,
             terminal: Term::buffered_stdout(),
+            clear_color: clear_color
         }
     }
 }
-
 impl Screen for ConsoleScreen {
-    fn clear(&self) {
+    fn clear(&mut self) {
         self.terminal
             .clear_screen()
             .expect("terminal failed to clear");
-        self.terminal.flush().expect("Error flushing after clear")
+        self.terminal.flush().expect("Error flushing after clear");
+        self.display = vec![self.clear_color; (self.width * self.height) as usize];
     }
 
     fn draw(&mut self) {
@@ -46,7 +47,7 @@ impl Screen for ConsoleScreen {
         for h in 0..self.height {
             for w in 0..self.width {
                 let idx = ((self.width * h) + w) as usize;
-                let flag = self.display[idx];
+                let flag = self.display[idx] != 0;
                 if flag {
                     strings.push(format!("{}", on_style.apply_to("  ")));
                 } else {
@@ -61,26 +62,8 @@ impl Screen for ConsoleScreen {
         }
     }
 
-    fn on(&mut self) {
-        for h in 0..self.height {
-            for w in 0..self.width {
-                let idx = ((self.width * h) + w) as usize;
-                self.display[idx] = true;
-            }
-        }
-    }
-
-    fn off(&mut self) {
-        for h in 0..self.height {
-            for w in 0..self.width {
-                let idx = ((self.width * h) + w) as usize;
-                self.display[idx] = false;
-            }
-        }
-    }
-
-    fn set_pixel(&mut self, x: i32, y: i32, on: bool) {
+    fn set_pixel(&mut self, x: i32, y: i32, color: u32) {
         let idx = ((self.width * y) + x) as usize;
-        self.display[idx] = on;
+        self.display[idx] = color;
     }
 }

@@ -1,6 +1,6 @@
 extern crate lib_chip;
 use lib_chip::{
-    screen::{Screen,builder::{ScreenParams}},
+    screen::{builder::{ScreenParams}},
     chip_8::Chip8
 };
 
@@ -8,7 +8,7 @@ fn main() {
     const WIDTH:i32 = 64i32;
     const HEIGHT:i32 = 32i32;
 
-    let mut screen = ScreenParams::new()
+    let screen = ScreenParams::new()
         .with_height(HEIGHT)
         .with_width(WIDTH)
         .for_console()
