@@ -1,7 +1,8 @@
 extern crate lib_chip;
 use lib_chip::{
     screen::{builder::{ScreenParams}},
-    chip_8::Chip8
+    chip_8::Chip8,
+    rom::Rom
 };
 
 fn main() {
@@ -15,6 +16,7 @@ fn main() {
         .build();
     
     let file = r"C:\Users\andre\Downloads\Cave.ch8";
-    let mut chip8 = Chip8::new(Box::new(screen), file);
+    let rom = Rom::load(file).expect("Rom loaded");
+    let mut chip8 = Chip8::new(Box::new(screen), rom);
     chip8.run();
 }
