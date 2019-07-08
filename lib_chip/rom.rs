@@ -1,10 +1,8 @@
 use std::fs::File;
 use std::io::prelude::*;
-use std::path::PathBuf;
 
 pub struct Rom {
-    data: Vec<u8>,
-    path: PathBuf
+    data: Vec<u8>
 }
 
 impl Rom {
@@ -12,8 +10,7 @@ impl Rom {
         let data = load_rom_data(path)?;
 
         let rom = Rom {
-            data: data,
-            path: PathBuf::from(path)
+            data: data
         };
         
         Ok(rom)

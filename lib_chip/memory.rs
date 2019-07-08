@@ -4,9 +4,10 @@ pub struct Memory {
 
 impl Memory {
     pub fn new() -> Memory {
-        Memory {
-            data: [0; 1024 * 4]
-        }
+        let mut memory = Memory { data: [0; 1024 * 4]};
+
+        memory.reset();
+        memory
     }
 
     pub fn read(&self, address: u16) -> u8 {
@@ -15,6 +16,8 @@ impl Memory {
 
     pub fn reset(&mut self) {
         self.data = [0; 1024 * 4];
+        let text = load_text();
+        self.set(0x0, text);
     }
 
     pub fn set(&mut self, from: usize, data: Vec<u8>) {
@@ -24,8 +27,7 @@ impl Memory {
     }
 }
 
-pub fn load_text() -> Vec<u8> {
-    println!("Creating text region");
+fn load_text() -> Vec<u8> {
     let mut mem: [u8; 80] = [0; 80];
     // 0
     mem[0] = 0xF0;

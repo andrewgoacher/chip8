@@ -17,6 +17,8 @@ fn main() {
     
     let file = r"C:\Users\andre\Downloads\Cave.ch8";
     let rom = Rom::load(file).expect("Rom loaded");
-    let mut chip8 = Chip8::new(Box::new(screen), rom);
+    let mut chip8 = Chip8::new(Box::new(screen));
+
+    chip8.load_rom(rom);
     chip8.run();
 }
