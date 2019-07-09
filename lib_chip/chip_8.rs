@@ -1,8 +1,9 @@
 use super::memory::Memory;
-use super::opcodes::{parse_opcode, LoadOpCode, OpCode};
+use super::opcodes::{parse_opcode, AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp};
 use super::rom::Rom;
 use super::screen::Screen;
 
+use rand::Rng;
 use std::boxed::Box;
 
 pub struct Chip8 {
@@ -53,26 +54,253 @@ impl Chip8 {
         match &self.rom {
             None => panic!("Cannot run if no rom"),
             Some(rom) => {
-                self.memory.set(0x200, rom.read_all());
+                self.memory.set_range(0x200, rom.read_all());
             }
         }
+
+        let mut rng = rand::thread_rng();
 
         self.running = true;
         while self.running {
             match self.get_opcode() {
                 OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
-                OpCode::ClearScreen => {
+                OpCode::CLS => {
                     self.screen.clear();
                     self.pc += 2;
                 }
-                OpCode::Return => {
-                    self.pc = self.stack[self.stack_pointer as usize];
+                OpCode::RET => {
                     self.stack_pointer -= 1;
+                    self.pc = self.stack[self.stack_pointer as usize];
                 }
-                OpCode::Load(l) => {
+                OpCode::LD(op) => {
+                    match op {
+                        LoadOp::LD(vx, data) => {
+                            self.registers[vx as usize] = data;
+                            self.pc += 2;
+                        }
+                        LoadOp::LDI(data) => {
+                            self.i = data;
+                            self.pc += 2;
+                        }
+                        LoadOp::LDXY(vx, vy) => {
+                            self.registers[vx as usize] = self.registers[vy as usize];
+                            self.pc += 2;
+                        }
+                        LoadOp::LDVXDT(vx) => {
+                            self.registers[vx as usize] = self.delay_timer;
+                            self.pc += 2;
+                        }
+                        LoadOp::LDDTVX(vx) => {
+                            self.delay_timer = self.registers[vx as usize];
+                            self.pc += 2;
+                        }
+                        LoadOp::LDKEY(vx) => {
+                            // todo:
+                            // Wait for a key press, store the value of the key in Vx.
+                            // All execution stops until a key is pressed, then the value of that key is stored in Vx.
+                            self.pc += 2;
+                        }
+                        LoadOp::LDSTVX(vx) => {
+                            self.sound_timer = self.registers[vx as usize];
+                            self.pc += 2;
+                        }
+                        LoadOp::LDF(vx) => {
+                            // todo:
+                            // Set I = location of sprite for digit Vx.
+                            // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+                            self.pc += 2;
+                        }
+                        LoadOp::LDB(vx) => {
+                            let val = self.registers[vx as usize];
+                            let h = val - (val % 100);
+                            let tmp_t = val - h;
+                            let t = tmp_t - (tmp_t % 10);
+                            let u = val - h - t;
+
+                            self.memory.set(self.i as usize, h);
+                            self.memory.set((self.i + 1) as usize, t);
+                            self.memory.set((self.i + 2) as usize, u);
+
+                            self.pc += 2;
+                        }
+                        LoadOp::LDIV0X(vx) => {
+                            for v in 0..(vx + 1) {
+                                let val = self.registers[v as usize];
+                                let addr = self.i + v as u16;
+
+                                self.memory.set(addr as usize, val);
+                                self.pc += 2;
+                            }
+                        }
+                        LoadOp::LDV0XI(vx) => {
+                            for v in 0..(vx + 1) {
+                                let addr = self.i + v as u16;
+                                let val = self.memory.read(addr);
+
+                                self.registers[v as usize] = val;
+                                self.pc += 2;
+                            }
+                        }
+                    }
+                }
+                OpCode::JP(jp) => match jp {
+                    JumpOp::JP(loc) => {
+                        self.pc = loc;
+                    }
+                    JumpOp::JPV0(loc) => {
+                        let v0 = self.registers[0x0] as u16;
+                        self.pc = loc + v0;
+                    }
+                },
+                OpCode::CALL(loc) => {
+                    self.stack[self.stack_pointer as usize] = loc;
+                    self.stack_pointer += 1;
+                    self.pc = loc;
+                }
+                OpCode::SKIP(op) => match op {
+                    SkipOp::SE(vx, data) => {
+                        let x = self.registers[vx as usize];
+                        self.pc += 2;
+                        if x == data {
+                            self.pc += 2;
+                        }
+                    }
+                    SkipOp::SNE(vx, data) => {
+                        let x = self.registers[vx as usize];
+                        self.pc += 2;
+                        if x != data {
+                            self.pc += 2;
+                        }
+                    }
+                    SkipOp::SEXY(vx, vy) => {
+                        let x = self.registers[vx as usize];
+                        let y = self.registers[vy as usize];
+                        self.pc += 2;
+                        if x == y {
+                            self.pc += 2;
+                        }
+                    }
+                    SkipOp::SNEXY(vx, vy) => {
+                        let x = self.registers[vx as usize];
+                        let y = self.registers[vy as usize];
+                        self.pc += 2;
+                        if x != y {
+                            self.pc += 2;
+                        }
+                    }
+                    SkipOp::SKP(vx) => {
+                        self.pc += 2;
+                        // todo:
+                        // Skip next instruction if key with the value of Vx is pressed.
+                        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
+                    }
+                    SkipOp::SKNP(vx) => {
+                        self.pc += 2;
+                        // todo:
+                        // Skip next instruction if key with the value of Vx is not pressed.
+                        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+                    }
+                },
+                OpCode::ADD(op) => match op {
+                    AddOp::ADD(vx, data) => {
+                        let x = self.registers[vx as usize];
+                        self.registers[vx as usize] = x + data;
+                        self.pc += 2;
+                    }
+                    AddOp::ADDREG(vx, vy) => {
+                        let x = self.registers[vx as usize] as u16;
+                        let y = self.registers[vy as usize] as u16;
+
+                        let result = x + y;
+                        let carry = if result > 255 { 1 } else { 0 };
+                        let low = result & 0x00FF;
+                        self.registers[0xF] = carry;
+                        self.registers[vx as usize] = low as u8;
+                        self.pc += 2;
+                    }
+                    AddOp::ADDI(vx) => {
+                        let x = self.registers[vx as usize];
+                        let new_i = self.i + x as u16;
+                        self.i = new_i;
+                        self.pc += 2;
+                    }
+                },
+                OpCode::SUB(vx, vy) => {
+                    let x = self.registers[vx as usize];
+                    let y = self.registers[vy as usize];
+
+                    let new_x = x - y;
+                    let not_borrow = if new_x > y { 1 } else { 0 };
+
+                    self.registers[vx as usize] = new_x;
+                    self.registers[0xF] = not_borrow;
                     self.pc += 2;
-                    self.registers[l.register as usize] = l.value;
                 }
+                OpCode::SUBN(vx, vy) => {
+                    let x = self.registers[vx as usize];
+                    let y = self.registers[vy as usize];
+
+                    let new_x = y - x;
+                    let not_borrow = if new_x < y { 1 } else { 0 };
+
+                    self.registers[vx as usize] = new_x;
+                    self.registers[0xF] = not_borrow;
+                    self.pc += 2;
+                }
+                OpCode::RND(vx, data) => {
+                    let r: u8 = rng.gen();
+                    let val = r & data;
+                    self.registers[vx as usize] = val;
+                    self.pc += 2;
+                }
+                OpCode::DRW(vx, vy, data) => {
+                    // todo:
+                    /*
+                    Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+
+                    The interpreter reads n bytes from memory, starting at the address stored in I.
+                    These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
+                    Sprites are XORed onto the existing screen. If this causes any pixels to be erased,
+                    VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of
+                    it is outside the coordinates of the display, it wraps around to the opposite side
+                    of the screen. See instruction 8xy3 for more information on XOR, and section 2.4,
+                    Display, for more information on the Chip-8 screen and sprites.
+                    */
+                    self.pc += 2;
+                }
+                OpCode::OR(vx, vy) => {
+                    let x = self.registers[vx as usize];
+                    let y = self.registers[vy as usize];
+
+                    self.registers[vx as usize] = x | y;
+                    self.pc += 2;
+                }
+                OpCode::AND(vx, vy) => {
+                    let x = self.registers[vx as usize];
+                    let y = self.registers[vy as usize];
+
+                    self.registers[vx as usize] = x & y;
+                    self.pc += 2;
+                }
+                OpCode::XOR(vx, vy) => {
+                    let x = self.registers[vx as usize];
+                    let y = self.registers[vy as usize];
+
+                    self.registers[vx as usize] = x ^ y;
+                    self.pc += 2;
+                }
+                OpCode::SHIFT(op) => match op {
+                    ShiftOp::SHR(vx) => {
+                        let x = self.registers[vx as usize];
+                        self.registers[vx as usize] = x >> 1;
+                        self.pc += 2;
+                    }
+                    ShiftOp::SHL(vx) => {
+                        let x = self.registers[vx as usize];
+                        self.registers[vx as usize] = x << 1;
+                        self.pc += 2;
+                    }
+                },
             };
         }
     }

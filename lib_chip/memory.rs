@@ -17,13 +17,17 @@ impl Memory {
     pub fn reset(&mut self) {
         self.data = [0; 1024 * 4];
         let text = load_text();
-        self.set(0x0, text);
+        self.set_range(0x0, text);
     }
 
-    pub fn set(&mut self, from: usize, data: Vec<u8>) {
+    pub fn set_range(&mut self, from: usize, data: Vec<u8>) {
         for i in 0 .. data.len() {
             self.data[i+from] = data[i]; 
         }
+    }
+
+    pub fn set(&mut self, address: usize, data: u8) {
+        self.data[address] = data;
     }
 }
 
