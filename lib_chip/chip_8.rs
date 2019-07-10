@@ -107,10 +107,29 @@ impl Chip8 {
                             self.pc += 2;
                         }
                         LoadOp::LDF(vx) => {
-                            // todo:
-                            // Set I = location of sprite for digit Vx.
-                            // The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+                            let sprite = self.registers[vx as usize];
                             self.pc += 2;
+
+                            let addr = match sprite {
+                                0x0 => 0x0,
+                                0x1 => 0x5,
+                                0x2 => 0xA,
+                                0x3 => 0xF,
+                                0x4 => 0x14,
+                                0x5 => 0x19,
+                                0x6 => 0x1E,
+                                0x7 => 0x23,
+                                0x8 => 0x28,
+                                0x9 => 0x2D,
+                                0xA => 0x32,
+                                0xB => 0x37,
+                                0xC => 0x3C,
+                                0xD => 0x41,
+                                0xE => 0x46,
+                                0xF => 0x4B,
+                                _ => panic!("Unknown sprite value"),
+                            };
+                            self.i = addr;
                         }
                         LoadOp::LDB(vx) => {
                             let val = self.registers[vx as usize];
