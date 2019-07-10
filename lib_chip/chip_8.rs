@@ -1,3 +1,4 @@
+use super::input::{ConsoleInput, Input};
 use super::memory::Memory;
 use super::opcodes::{parse_opcode, AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp};
 use super::rom::Rom;
@@ -18,6 +19,7 @@ pub struct Chip8 {
     pc: u16,
     stack_pointer: u16,
     i: u16,
+    input: ConsoleInput,
 }
 
 impl Chip8 {
@@ -34,6 +36,7 @@ impl Chip8 {
             pc: 0x200,
             stack_pointer: 0,
             i: 0,
+            input: ConsoleInput::new(),
         }
     }
 
@@ -95,9 +98,8 @@ impl Chip8 {
                             self.pc += 2;
                         }
                         LoadOp::LDKEY(vx) => {
-                            // todo:
-                            // Wait for a key press, store the value of the key in Vx.
-                            // All execution stops until a key is pressed, then the value of that key is stored in Vx.
+                            let key_press = self.input.get_key_pressed();
+                            self.registers[vx as usize] = key_press;
                             self.pc += 2;
                         }
                         LoadOp::LDSTVX(vx) => {
@@ -190,15 +192,17 @@ impl Chip8 {
                     }
                     SkipOp::SKP(vx) => {
                         self.pc += 2;
-                        // todo:
-                        // Skip next instruction if key with the value of Vx is pressed.
-                        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2.
+                        let value = self.registers[vx as usize];
+                        if self.input.is_key_pressed(value) {
+                            self.pc += 2;
+                        }
                     }
                     SkipOp::SKNP(vx) => {
                         self.pc += 2;
-                        // todo:
-                        // Skip next instruction if key with the value of Vx is not pressed.
-                        // Checks the keyboard, and if the key corresponding to the value of Vx is currently in the up position, PC is increased by 2.
+                        let value = self.registers[vx as usize];
+                        if !self.input.is_key_pressed(value) {
+                            self.pc += 2;
+                        }
                     }
                 },
                 OpCode::ADD(op) => match op {
