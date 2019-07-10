@@ -3,23 +3,45 @@ use console::Term;
 
 use super::Screen;
 
+fn sanitise_width(x: i32, width: i32) -> i32 {
+    let mut new_x = x;
+
+    while new_x >= width {
+        new_x = new_x - width;
+    }
+
+    new_x
+}
+
+fn sanitise_height(y: i32, height: i32) -> i32 {
+    let mut new_y = y;
+
+    while new_y >= height {
+        new_y = new_y - height;
+    }
+
+    new_y
+}
+
 pub struct ConsoleScreen {
-    display: Vec<u32>,
+    display: Vec<u8>,
     width: i32,
     height: i32,
     first_run: bool,
     terminal: console::Term,
-    clear_color: u32,
+    off: console::Color,
+    on: console::Color,
 }
 impl ConsoleScreen {
-        pub fn new(width: i32, height: i32, clear_color: u32) -> Self {
+    pub fn new(width: i32, height: i32) -> Self {
         ConsoleScreen {
             display: vec![0; (width * height) as usize],
             width: width,
             height: height,
             first_run: true,
             terminal: Term::buffered_stdout(),
-            clear_color: clear_color
+            off: console::Color::Black,
+            on: console::Color::White,
         }
     }
 }
@@ -29,7 +51,7 @@ impl Screen for ConsoleScreen {
             .clear_screen()
             .expect("terminal failed to clear");
         self.terminal.flush().expect("Error flushing after clear");
-        self.display = vec![self.clear_color; (self.width * self.height) as usize];
+        self.display = vec![0; (self.width * self.height) as usize];
     }
 
     fn draw(&mut self) {
@@ -40,8 +62,8 @@ impl Screen for ConsoleScreen {
         }
         self.first_run = false;
 
-        let on_style = Style::new().bg(console::Color::Blue);
-        let off_style = Style::new().bg(console::Color::Yellow);
+        let on_style = Style::new().bg(self.on);
+        let off_style = Style::new().bg(self.off);
         let mut strings: Vec<String> = Vec::new();
 
         for h in 0..self.height {
@@ -62,8 +84,22 @@ impl Screen for ConsoleScreen {
         }
     }
 
-    fn set_pixel(&mut self, x: i32, y: i32, color: u32) {
-        let idx = ((self.width * y) + x) as usize;
-        self.display[idx] = color;
+    fn set_pixel(&mut self, start_x: i32, start_y: i32, pixel: u8) -> bool {
+        let mut erased = false;
+        let matchers: Vec<u8> = vec![0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01];
+        for i in 0..8 {
+            let w = sanitise_width(start_x + i, self.width);
+            let h = sanitise_height(start_y, self.height);
+
+            let idx = ((self.width * h) + w) as usize;
+            let old_pixel = self.display[idx];
+            let fragment = pixel & (matchers[i as usize] >> (7 - i));
+            let new_pixel: u8 = old_pixel ^ fragment;
+            if new_pixel == 0 && old_pixel == 1 {
+                erased = true;
+            }
+            self.display[idx] = new_pixel;
+        }
+        erased
     }
 }

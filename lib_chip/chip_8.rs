@@ -6,6 +6,7 @@ use super::screen::Screen;
 
 use rand::Rng;
 use std::boxed::Box;
+use std::{thread, time};
 
 pub struct Chip8 {
     screen: Box<Screen>,
@@ -75,95 +76,93 @@ impl Chip8 {
                     self.stack_pointer -= 1;
                     self.pc = self.stack[self.stack_pointer as usize];
                 }
-                OpCode::LD(op) => {
-                    match op {
-                        LoadOp::LD(vx, data) => {
-                            self.registers[vx as usize] = data;
-                            self.pc += 2;
-                        }
-                        LoadOp::LDI(data) => {
-                            self.i = data;
-                            self.pc += 2;
-                        }
-                        LoadOp::LDXY(vx, vy) => {
-                            self.registers[vx as usize] = self.registers[vy as usize];
-                            self.pc += 2;
-                        }
-                        LoadOp::LDVXDT(vx) => {
-                            self.registers[vx as usize] = self.delay_timer;
-                            self.pc += 2;
-                        }
-                        LoadOp::LDDTVX(vx) => {
-                            self.delay_timer = self.registers[vx as usize];
-                            self.pc += 2;
-                        }
-                        LoadOp::LDKEY(vx) => {
-                            let key_press = self.input.get_key_pressed();
-                            self.registers[vx as usize] = key_press;
-                            self.pc += 2;
-                        }
-                        LoadOp::LDSTVX(vx) => {
-                            self.sound_timer = self.registers[vx as usize];
-                            self.pc += 2;
-                        }
-                        LoadOp::LDF(vx) => {
-                            let sprite = self.registers[vx as usize];
-                            self.pc += 2;
+                OpCode::LD(op) => match op {
+                    LoadOp::LD(vx, data) => {
+                        self.registers[vx as usize] = data;
+                        self.pc += 2;
+                    }
+                    LoadOp::LDI(data) => {
+                        self.i = data;
+                        self.pc += 2;
+                    }
+                    LoadOp::LDXY(vx, vy) => {
+                        self.registers[vx as usize] = self.registers[vy as usize];
+                        self.pc += 2;
+                    }
+                    LoadOp::LDVXDT(vx) => {
+                        self.registers[vx as usize] = self.delay_timer;
+                        self.pc += 2;
+                    }
+                    LoadOp::LDDTVX(vx) => {
+                        self.delay_timer = self.registers[vx as usize];
+                        self.pc += 2;
+                    }
+                    LoadOp::LDKEY(vx) => {
+                        let key_press = self.input.get_key_pressed();
+                        self.registers[vx as usize] = key_press;
+                        self.pc += 2;
+                    }
+                    LoadOp::LDSTVX(vx) => {
+                        self.sound_timer = self.registers[vx as usize];
+                        self.pc += 2;
+                    }
+                    LoadOp::LDF(vx) => {
+                        let sprite = self.registers[vx as usize];
+                        self.pc += 2;
 
-                            let addr = match sprite {
-                                0x0 => 0x0,
-                                0x1 => 0x5,
-                                0x2 => 0xA,
-                                0x3 => 0xF,
-                                0x4 => 0x14,
-                                0x5 => 0x19,
-                                0x6 => 0x1E,
-                                0x7 => 0x23,
-                                0x8 => 0x28,
-                                0x9 => 0x2D,
-                                0xA => 0x32,
-                                0xB => 0x37,
-                                0xC => 0x3C,
-                                0xD => 0x41,
-                                0xE => 0x46,
-                                0xF => 0x4B,
-                                _ => panic!("Unknown sprite value"),
-                            };
-                            self.i = addr;
-                        }
-                        LoadOp::LDB(vx) => {
-                            let val = self.registers[vx as usize];
-                            let h = val - (val % 100);
-                            let tmp_t = val - h;
-                            let t = tmp_t - (tmp_t % 10);
-                            let u = val - h - t;
+                        let addr = match sprite {
+                            0x0 => 0x0,
+                            0x1 => 0x5,
+                            0x2 => 0xA,
+                            0x3 => 0xF,
+                            0x4 => 0x14,
+                            0x5 => 0x19,
+                            0x6 => 0x1E,
+                            0x7 => 0x23,
+                            0x8 => 0x28,
+                            0x9 => 0x2D,
+                            0xA => 0x32,
+                            0xB => 0x37,
+                            0xC => 0x3C,
+                            0xD => 0x41,
+                            0xE => 0x46,
+                            0xF => 0x4B,
+                            _ => panic!("Unknown sprite value"),
+                        };
+                        self.i = addr;
+                    }
+                    LoadOp::LDB(vx) => {
+                        let val = self.registers[vx as usize];
+                        let h = val - (val % 100);
+                        let tmp_t = val - h;
+                        let t = tmp_t - (tmp_t % 10);
+                        let u = val - h - t;
 
-                            self.memory.set(self.i as usize, h);
-                            self.memory.set((self.i + 1) as usize, t);
-                            self.memory.set((self.i + 2) as usize, u);
+                        self.memory.set(self.i as usize, h);
+                        self.memory.set((self.i + 1) as usize, t);
+                        self.memory.set((self.i + 2) as usize, u);
 
+                        self.pc += 2;
+                    }
+                    LoadOp::LDIV0X(vx) => {
+                        for v in 0..(vx + 1) {
+                            let val = self.registers[v as usize];
+                            let addr = self.i + v as u16;
+
+                            self.memory.set(addr as usize, val);
                             self.pc += 2;
-                        }
-                        LoadOp::LDIV0X(vx) => {
-                            for v in 0..(vx + 1) {
-                                let val = self.registers[v as usize];
-                                let addr = self.i + v as u16;
-
-                                self.memory.set(addr as usize, val);
-                                self.pc += 2;
-                            }
-                        }
-                        LoadOp::LDV0XI(vx) => {
-                            for v in 0..(vx + 1) {
-                                let addr = self.i + v as u16;
-                                let val = self.memory.read(addr);
-
-                                self.registers[v as usize] = val;
-                                self.pc += 2;
-                            }
                         }
                     }
-                }
+                    LoadOp::LDV0XI(vx) => {
+                        for v in 0..(vx + 1) {
+                            let addr = self.i + v as u16;
+                            let val = self.memory.read(addr);
+
+                            self.registers[v as usize] = val;
+                            self.pc += 2;
+                        }
+                    }
+                },
                 OpCode::JP(jp) => match jp {
                     JumpOp::JP(loc) => {
                         self.pc = loc;
@@ -277,18 +276,18 @@ impl Chip8 {
                     self.pc += 2;
                 }
                 OpCode::DRW(vx, vy, data) => {
-                    // todo:
-                    /*
-                    Display n-byte sprite starting at memory location I at (Vx, Vy), set VF = collision.
+                    let mut erased = false;
+                    for i in 0..data {
+                        let addr = self.i + i as u16;
+                        let mem = self.memory.read(addr);
 
-                    The interpreter reads n bytes from memory, starting at the address stored in I.
-                    These bytes are then displayed as sprites on screen at coordinates (Vx, Vy).
-                    Sprites are XORed onto the existing screen. If this causes any pixels to be erased,
-                    VF is set to 1, otherwise it is set to 0. If the sprite is positioned so part of
-                    it is outside the coordinates of the display, it wraps around to the opposite side
-                    of the screen. See instruction 8xy3 for more information on XOR, and section 2.4,
-                    Display, for more information on the Chip-8 screen and sprites.
-                    */
+                        let e = self.screen.set_pixel(vx as i32, vy as i32, mem);
+                        if i > 0 {
+                            erased = erased | e;
+                        }
+                    }
+                    self.registers[0xf] = if erased { 1 } else { 0 };
+
                     self.pc += 2;
                 }
                 OpCode::OR(vx, vy) => {
@@ -325,6 +324,13 @@ impl Chip8 {
                     }
                 },
             };
+
+            self.screen.draw();
+
+            let millis = time::Duration::from_millis(250);
+            // let now = time::Instant::now();
+
+            thread::sleep(millis);
         }
     }
 }
