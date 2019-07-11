@@ -24,7 +24,7 @@ fn sanitise_height(y: i32, height: i32) -> i32 {
 }
 
 pub struct ConsoleScreen {
-    display: Vec<u8>,
+    display: Vec<bool>,
     width: i32,
     height: i32,
     first_run: bool,
@@ -35,7 +35,7 @@ pub struct ConsoleScreen {
 impl ConsoleScreen {
     pub fn new(width: i32, height: i32) -> Self {
         ConsoleScreen {
-            display: vec![0; (width * height) as usize],
+            display: vec![false; (width * height) as usize],
             width: width,
             height: height,
             first_run: true,
@@ -51,7 +51,7 @@ impl Screen for ConsoleScreen {
             .clear_screen()
             .expect("terminal failed to clear");
         self.terminal.flush().expect("Error flushing after clear");
-        self.display = vec![0; (self.width * self.height) as usize];
+        self.display = vec![false; (self.width * self.height) as usize];
     }
 
     fn draw(&mut self) {
@@ -69,7 +69,7 @@ impl Screen for ConsoleScreen {
         for h in 0..self.height {
             for w in 0..self.width {
                 let idx = ((self.width * h) + w) as usize;
-                let flag = self.display[idx] != 0;
+                let flag = self.display[idx];
                 if flag {
                     strings.push(format!("{}", on_style.apply_to("  ")));
                 } else {
@@ -93,9 +93,9 @@ impl Screen for ConsoleScreen {
 
             let idx = ((self.width * h) + w) as usize;
             let old_pixel = self.display[idx];
-            let fragment = pixel & (matchers[i as usize] >> (7 - i));
-            let new_pixel: u8 = old_pixel ^ fragment;
-            if new_pixel == 0 && old_pixel == 1 {
+            let fragment = (pixel & (matchers[i as usize] >> (7 - i))) == 1;
+            let new_pixel: bool = old_pixel ^ fragment;
+            if new_pixel == false && old_pixel == true {
                 erased = true;
             }
             self.display[idx] = new_pixel;
