@@ -76,7 +76,7 @@ impl Chip8 {
             let elapsed = now.elapsed().as_nanos();
 
             self.timer_delay += elapsed;
-            if self.timer_delay >= 20000 {
+            if self.timer_delay >= 0 {// >= 20000 {
                 self.timer_delay = 0;
                 if self.delay_timer > 0 {
                     self.delay_timer -= 1;
@@ -94,7 +94,7 @@ impl Chip8 {
             }
             self.cpu_delay += elapsed;
 
-            if self.cpu_delay >= 1000 {
+            if self.cpu_delay >= 0 { //1000 {
                 self.cpu_delay = 0;
 
                 match self.get_opcode() {
@@ -313,10 +313,9 @@ impl Chip8 {
                             let addr = self.i + i as u16;
                             let mem = self.memory.read(addr);
 
-                            let e = self.screen.set_pixel(vx as i32, vy as i32, mem);
-                            if i > 0 {
-                                erased = erased | e;
-                            }
+                            let y = vy as i32 + i as i32;
+                            let e = self.screen.set_pixel(vx as i32, y, mem);
+                            erased = erased | e;
                         }
                         self.registers[0xf] = if erased { 1 } else { 0 };
 
@@ -359,6 +358,7 @@ impl Chip8 {
             }
 
             if self.draw_flag {
+                println!("drawing");
                 self.screen.draw();
                 self.draw_flag = false;
             }

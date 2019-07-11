@@ -4,23 +4,11 @@ use console::Term;
 use super::Screen;
 
 fn sanitise_width(x: i32, width: i32) -> i32 {
-    let mut new_x = x;
-
-    while new_x >= width {
-        new_x = new_x - width;
-    }
-
-    new_x
+    x % width
 }
 
 fn sanitise_height(y: i32, height: i32) -> i32 {
-    let mut new_y = y;
-
-    while new_y >= height {
-        new_y = new_y - height;
-    }
-
-    new_y
+    y % height
 }
 
 pub struct ConsoleScreen {
