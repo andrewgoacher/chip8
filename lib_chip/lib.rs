@@ -1,5 +1,6 @@
 extern crate console;
 extern crate rand;
+extern crate sdl2;
 
 pub mod screen;
 pub mod chip_8;

@@ -20,5 +20,5 @@ fn main() {
     let mut chip8 = Chip8::new(Box::new(screen));
 
     chip8.load_rom(rom);
-    chip8.run();
+   // chip8.run();
 }
