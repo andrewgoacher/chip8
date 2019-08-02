@@ -1,11 +1,13 @@
-extern crate console;
-extern crate rand;
-extern crate sdl2;
+// mod sdl_display;
 
-pub mod screen;
-pub mod chip_8;
+// extern crate console;
+// extern crate rand;
+// extern crate sdl2;
+
+// // pub mod screen;
+pub mod state;
+pub mod memory;
 pub mod rom;
-pub mod input;
+// pub mod input;
 
-mod opcodes;
-mod memory;
+mod opcode;
