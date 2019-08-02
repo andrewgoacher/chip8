@@ -28,7 +28,7 @@ impl State {
             stack_pointer: 0,
             i: 0,
             draw_flag: false,
-            run_flag: false,
+            run_flag: true,
             clear_flag: false
         }
     }
@@ -45,28 +45,6 @@ impl State {
     //     self.memory.reset();
     //     self.rom = Some(rom);
     // }
-
-    pub fn run(&self) -> State {
-        // match &self.rom {
-        //     None => panic!("Cannot run if no rom"),
-        //     Some(rom) => {
-        //         self.memory.set_range(0x200, rom.read_all());
-        //     }
-        // }
-
-        State {
-            stack: self.stack,
-            registers: self.registers,
-            delay_timer: self.delay_timer,
-            sound_timer: self.sound_timer,
-            pc: self.pc,
-            stack_pointer: self.stack_pointer,
-            i: self.i,
-            draw_flag: self.draw_flag,
-            run_flag: true,
-            clear_flag: self.clear_flag
-        }
-    }
 
     pub fn step(&self, memory: &mut Memory) -> State {
 
