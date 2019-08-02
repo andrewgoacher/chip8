@@ -41,11 +41,6 @@ impl State {
         parse_opcode(high, low)
     }
 
-    // pub fn load_rom(&mut self, rom: Rom) {
-    //     self.memory.reset();
-    //     self.rom = Some(rom);
-    // }
-
     pub fn step(&self, memory: &mut Memory) -> State {
 
         let mut running = self.run_flag;
