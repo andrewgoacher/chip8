@@ -4,17 +4,37 @@ use rand::Rng;
 use std::boxed::Box;
 use std::{thread, time};
 
+use std::fmt::{self, Formatter, Display};
+
 pub struct State {
-    stack: [u16; 16],
-    registers: [u8; 16],
-    delay_timer: u8,
-    sound_timer: u8,
-    pc: u16,
-    stack_pointer: u16,
-    i: u16,
-    draw_flag: bool,
-    run_flag: bool,
-    clear_flag: bool
+    pub stack: [u16; 16],
+    pub registers: [u8; 16],
+    pub delay_timer: u8,
+    pub sound_timer: u8,
+    pub pc: u16,
+    pub stack_pointer: u16,
+    pub i: u16,
+    pub draw_flag: bool,
+    pub run_flag: bool,
+    pub clear_flag: bool,
+    pub last_opcode: OpCode,
+    pub opcode: Option<OpCode>
+}
+
+impl Display for State {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        writeln!(f, "state: ({:?})", self.last_opcode);
+        match self.opcode {
+            None => (),
+            Some(x) => {writeln!(f, "stored: {:?}", x);()}
+        };
+        writeln!(f, "delay: {}, sound {}", self.delay_timer, self.sound_timer);
+        writeln!(f, "pc: {} | stack pointer: {} | interrupt: {}", self.pc,
+            self.stack_pointer, self.i);
+        writeln!(f, "stack: 0x{:04X}", self.stack[self.stack_pointer as usize]);
+        writeln!(f, "draw: {} | run: {} | clear: {} ", self.draw_flag, 
+            self.run_flag, self.clear_flag)
+    }
 }
 
 impl State {
@@ -29,7 +49,9 @@ impl State {
             i: 0,
             draw_flag: false,
             run_flag: true,
-            clear_flag: false
+            clear_flag: false,
+            last_opcode: OpCode::Unknown(0),
+            opcode: None
         }
     }
 
@@ -58,89 +80,97 @@ impl State {
         let mut registers = self.registers;
         let mut i = self.i;
 
+        let mut next_opcode: Option<OpCode> = self.opcode;
 
-            if self.delay_timer > 0 {
-                delay_timer -= 1;
-                if delay_timer == 0 {
-                    draw_flag = true;
-                }
+        if self.delay_timer > 0 {
+            delay_timer -= 1;
+            if delay_timer == 0 {
+                draw_flag = true;
             }
+        }
 
-            if self.sound_timer > 0 {
-                sound_timer -= 1;
-                if sound_timer == 0 {
-                    // todo: do sound
-                }
+        if self.sound_timer > 0 {
+            sound_timer -= 1;
+            if sound_timer == 0 {
+                // todo: do sound
             }
+        }
 
-            match self.get_opcode(memory) {
-                OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
-                OpCode::CLS => {
-                    clear_flag = true;
-                    // self.screen.clear();
+        let opcode = match next_opcode {
+            None => self.get_opcode(memory),
+            Some(code) => code
+        };
+
+        println!("next state: {:?}", opcode);
+
+        match opcode {
+            OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
+            OpCode::CLS => {
+                clear_flag = true;
+                pc += 2;
+                draw_flag = true;
+            }
+            OpCode::RET => {
+                stack_pointer -= 1;
+                pc = stack[stack_pointer as usize];
+            }
+            OpCode::LD(op) => match op {
+                LoadOp::LD(vx, data) => {
+                    registers[vx as usize] = data;
                     pc += 2;
-                    draw_flag = true;
                 }
-                OpCode::RET => {
-                    stack_pointer -= 1;
-                    pc = stack[stack_pointer as usize];
+                LoadOp::LDI(data) => {
+                    i = data;
+                    pc += 2;
                 }
-                OpCode::LD(op) => match op {
-                    LoadOp::LD(vx, data) => {
-                        registers[vx as usize] = data;
-                        pc += 2;
-                    }
-                    LoadOp::LDI(data) => {
-                        i = data;
-                        pc += 2;
-                    }
-                    LoadOp::LDXY(vx, vy) => {
-                        registers[vx as usize] = registers[vy as usize];
-                        pc += 2;
-                    }
-                    LoadOp::LDVXDT(vx) => {
-                        registers[vx as usize] = delay_timer;
-                        pc += 2;
-                    }
-                    LoadOp::LDDTVX(vx) => {
-                        delay_timer = registers[vx as usize];
-                        pc += 2;
-                    }
-                    LoadOp::LDKEY(vx) => {
-                        // todo: keypress
-                        // let key_press = self.input.get_key_pressed();
-                       // self.registers[vx as usize] = key_press;
-                        pc += 2;
-                    }
-                    LoadOp::LDSTVX(vx) => {
-                        sound_timer = registers[vx as usize];
-                        pc += 2;
-                    }
-                    LoadOp::LDF(vx) => {
-                        let sprite = registers[vx as usize];
-                        pc += 2;
+                LoadOp::LDXY(vx, vy) => {
+                    registers[vx as usize] = registers[vy as usize];
+                    pc += 2;
+                }
+                LoadOp::LDVXDT(vx) => {
+                    registers[vx as usize] = delay_timer;
+                    pc += 2;
+                }
+                LoadOp::LDDTVX(vx) => {
+                    delay_timer = registers[vx as usize];
+                    pc += 2;
+                }
+                LoadOp::LDKEY(vx) => {
+                    next_opcode = Some(opcode);
+                    // todo: keypress
+                    // let key_press = self.input.get_key_pressed();
+                   // self.registers[vx as usize] = key_press;
+                    //pc += 2;
+                }
+                LoadOp::LDSTVX(vx) => {
+                    sound_timer = registers[vx as usize];
+                    pc += 2;
+                }
+                LoadOp::LDF(vx) => {
+                    let sprite = registers[vx as usize];
+                    pc += 2;
 
-                        let addr = match sprite {
-                            0x0 => 0x0,
-                            0x1 => 0x5,
-                            0x2 => 0xA,
-                            0x3 => 0xF,
-                            0x4 => 0x14,
-                            0x5 => 0x19,
-                            0x6 => 0x1E,
-                            0x7 => 0x23,
-                            0x8 => 0x28,
-                            0x9 => 0x2D,
-                            0xA => 0x32,
-                            0xB => 0x37,
-                            0xC => 0x3C,
-                            0xD => 0x41,
-                            0xE => 0x46,
-                            0xF => 0x4B,
-                            _ => panic!("Unknown sprite value"),
-                        };
-                        i = addr;
-                    }
+                    let addr = match sprite {
+                        0x0 => 0x0,
+                        0x1 => 0x5,
+                        0x2 => 0xA,
+                        0x3 => 0xF,
+                        0x4 => 0x14,
+                        0x5 => 0x19,
+                        0x6 => 0x1E,
+                        0x7 => 0x23,
+                        0x8 => 0x28,
+                        0x9 => 0x2D,
+                        0xA => 0x32,
+                        0xB => 0x37,
+                        0xC => 0x3C,
+                        0xD => 0x41,
+                        0xE => 0x46,
+                        0xF => 0x4B,
+                        _ => panic!("Unknown sprite value"),
+                    };
+                    i = addr;
+                }
                     LoadOp::LDB(vx) => {
                         let val = registers[vx as usize];
                         let h = val - (val % 100);
@@ -183,7 +213,7 @@ impl State {
                     }
                 },
                 OpCode::CALL(loc) => {
-                    stack[stack_pointer as usize] = loc;
+                    stack[stack_pointer as usize] = pc+2;
                     stack_pointer += 1;
                     pc = loc;
                 }
@@ -219,16 +249,18 @@ impl State {
                         }
                     }
                     SkipOp::SKP(vx) => {
-                        pc += 2;
-                        let value = registers[vx as usize];
+                        next_opcode = Some(opcode);
+                        // pc += 2;
+                        // let value = registers[vx as usize];
                         // todo: inpit
                         // if self.input.is_key_pressed(value) {
                         //     self.pc += 2;
                         // }
                     }
                     SkipOp::SKNP(vx) => {
-                        pc += 2;
-                        let value = registers[vx as usize];
+                        // pc += 2;
+                        // let value = registers[vx as usize];
+                        next_opcode= Some(opcode);
                         // todo: input
                         // if !self.input.is_key_pressed(value) {
                         //     self.pc += 2;
@@ -238,7 +270,8 @@ impl State {
                 OpCode::ADD(op) => match op {
                     AddOp::ADD(vx, data) => {
                         let x = registers[vx as usize];
-                        registers[vx as usize] = x + data;
+                        let (val, _) = x.overflowing_add(data);
+                        registers[vx as usize] = val;
                         pc += 2;
                     }
                     AddOp::ADDREG(vx, vy) => {
@@ -335,7 +368,7 @@ impl State {
                         pc += 2;
                     }
                 },
-            };
+        };
 
         State {
             stack: stack,
@@ -347,7 +380,9 @@ impl State {
             i: i,
             draw_flag: draw_flag,
             run_flag: running,
-            clear_flag: clear_flag
+            clear_flag: clear_flag,
+            opcode: next_opcode,
+            last_opcode: opcode
         }
     }
 }

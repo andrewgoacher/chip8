@@ -15,8 +15,6 @@ use sdl2::render::Texture;
 
 fn draw(texture: &mut Texture, screen: &Vec<u8>) -> Result<(), String> {
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-        println!("len: {}", buffer.len());
-         println!("scrn: {}", screen.len());
          for x in 0.. screen.len() {
              buffer[x*3] = screen[x];
              buffer[(x*3)+1] = screen[x];
@@ -30,7 +28,7 @@ pub fn main() -> Result<(), String> {
     const height: u32 = 320;
 
     let mut state = State::new();
-    let rom = Rom::load("./tetris.ch8").expect("Failed to load rom");
+    let rom = Rom::load("./TETRIS").expect("Failed to load rom");
     let mut memory = Memory::new();
     memory.set_range(0x200, rom.read_all());
 
@@ -51,28 +49,37 @@ pub fn main() -> Result<(), String> {
     let mut texture = texture_creator.create_texture_streaming(PixelFormatEnum::RGB24, width, height)
         .map_err(|e| e.to_string())?;
 
-    draw(&mut texture, &screen);
-
-    canvas.clear();
-    // canvas.copy(&texture, None, Some(Rect::new(100, 100, 256, 256)))?;
-    // canvas.copy_ex(&texture, None,
-    //     Some(Rect::new(450, 100, 256, 256)), 30.0, None, false, false)?;
-    canvas.copy(&texture, None, None)?;
-    canvas.present();
-
     let mut event_pump = sdl_context.event_pump()?;
 
     'running: loop {
+        let mut key: Option<Keycode> = None;
+
         for event in event_pump.poll_iter() {
             match event {
                 Event::Quit {..}
                 | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
+                Event::KeyDown { keycode: x, .. } => key=x,
                 _ => {}
             }
         }
         // The rest of the game loop goes here...
+        println!("{}", state);
+        state = state.step(&mut memory);
+
+        if state.clear_flag || state.draw_flag {
+            canvas.clear();
+            state.clear_flag = false;
+        }
+        if state.draw_flag {
+            draw(&mut texture, &screen);
+            canvas.copy(&texture, None, None)?;
+            state.draw_flag = false;
+        }
+        if state.clear_flag || state.draw_flag {
+            canvas.present();
+        }
     }
 
     Ok(())
