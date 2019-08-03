@@ -33,7 +33,8 @@ pub fn main() -> Result<(), String> {
     let mut memory = Memory::new();
     memory.set_range(0x200, rom.read_all());
 
-    let screen: Vec<u8> = vec![0; (width * height) as usize];
+    let mut screen: Vec<u8> = vec![0; (width * height) as usize];
+    let mut display: Vec<(i32,i32,u8)> = Vec::new();
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -67,18 +68,27 @@ pub fn main() -> Result<(), String> {
         }
         // The rest of the game loop goes here...
         // println!("{}", state);
-        state = state.step(&mut memory, get_key_mapped(key));
+        state = state.step(&mut memory, get_key_mapped(key), &mut display);
 
         if state.clear_flag || state.draw_flag {
             canvas.clear();
-            state.clear_flag = false;
+            for d in display {
+                let(x, y, mem) = d;
+                let sanitised_x = (x as u32 % width);
+                let sanitised_y = (y as u32 % height);
+
+                let idx = ((width * sanitised_y) + sanitised_x) as usize;
+                screen[idx] = mem as u8;
+            }
+            display = Vec::new();
         }
         if state.draw_flag {
             draw(&mut texture, &screen);
             canvas.copy(&texture, None, None)?;
-            state.draw_flag = false;
         }
         if state.clear_flag || state.draw_flag {
+            state.draw_flag = false;
+            state.clear_flag = false;
             canvas.present();
         }
     }

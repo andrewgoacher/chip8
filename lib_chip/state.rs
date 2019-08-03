@@ -49,9 +49,9 @@ impl State {
             pc: 0x200,
             stack_pointer: 0,
             i: 0,
-            draw_flag: false,
+            draw_flag: true,
             run_flag: true,
-            clear_flag: false,
+            clear_flag: true,
             last_opcode: OpCode::Unknown(0),
             opcode: None
         }
@@ -65,8 +65,8 @@ impl State {
         parse_opcode(high, low)
     }
 
-    pub fn step(&self, memory: &mut Memory, keycode: Option<u8>) -> State {
-
+    pub fn step(&self, memory: &mut Memory, keycode: Option<u8>, 
+    screen: &mut Vec<(i32,i32,u8)>) -> State {
         let mut running = self.run_flag;
         let mut rng = rand::thread_rng();
         let now = time::Instant::now();
@@ -87,7 +87,7 @@ impl State {
         if self.delay_timer > 0 {
             delay_timer -= 1;
             if delay_timer == 0 {
-                draw_flag = true;
+                //draw_flag = true;
             }
         }
 
@@ -147,7 +147,6 @@ impl State {
                             next_opcode = None;
                             registers[vx as usize] = key_press;
                             pc += 2;
-
                         }
                     }
                 }
@@ -358,9 +357,8 @@ impl State {
 
                         let y = vy as i32 + d as i32;
                         let e = false;
-                        println!("draw required");
-                        // todo: screen
-                        // self.screen.set_pixel(vx as i32, y, mem);
+                        screen.push((vx as i32, y, mem));
+                        draw_flag = true;
                         erased = erased | e;
                     }
                     registers[0xf] = if erased { 1 } else { 0 };
