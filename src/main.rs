@@ -2,7 +2,8 @@ extern crate lib_chip;
 use lib_chip::{
     state::State,
     rom::Rom,
-    memory::Memory
+    memory::Memory,
+    keyboard::get_key_mapped
 };
 
 extern crate sdl2;
@@ -65,8 +66,8 @@ pub fn main() -> Result<(), String> {
             }
         }
         // The rest of the game loop goes here...
-        println!("{}", state);
-        state = state.step(&mut memory);
+        // println!("{}", state);
+        state = state.step(&mut memory, get_key_mapped(key));
 
         if state.clear_flag || state.draw_flag {
             canvas.clear();

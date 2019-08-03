@@ -4,6 +4,8 @@ use rand::Rng;
 use std::boxed::Box;
 use std::{thread, time};
 
+use super::keyboard::get_unmapped_key;
+
 use std::fmt::{self, Formatter, Display};
 
 pub struct State {
@@ -63,7 +65,7 @@ impl State {
         parse_opcode(high, low)
     }
 
-    pub fn step(&self, memory: &mut Memory) -> State {
+    pub fn step(&self, memory: &mut Memory, keycode: Option<u8>) -> State {
 
         let mut running = self.run_flag;
         let mut rng = rand::thread_rng();
@@ -101,7 +103,7 @@ impl State {
             Some(code) => code
         };
 
-        println!("next state: {:?}", opcode);
+        // println!("next state: {:?}", opcode);
 
         match opcode {
             OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
@@ -136,11 +138,18 @@ impl State {
                     pc += 2;
                 }
                 LoadOp::LDKEY(vx) => {
-                    next_opcode = Some(opcode);
-                    // todo: keypress
-                    // let key_press = self.input.get_key_pressed();
-                   // self.registers[vx as usize] = key_press;
-                    //pc += 2;
+                    println!("press any key");
+                    match keycode {
+                        None => {
+                            next_opcode = Some(opcode);
+                        },
+                        Some(key_press) => {
+                            next_opcode = None;
+                            registers[vx as usize] = key_press;
+                            pc += 2;
+
+                        }
+                    }
                 }
                 LoadOp::LDSTVX(vx) => {
                     sound_timer = registers[vx as usize];
@@ -249,22 +258,43 @@ impl State {
                         }
                     }
                     SkipOp::SKP(vx) => {
-                        next_opcode = Some(opcode);
-                        // pc += 2;
-                        // let value = registers[vx as usize];
-                        // todo: inpit
-                        // if self.input.is_key_pressed(value) {
-                        //     self.pc += 2;
-                        // }
+                        let value = registers[vx as usize];
+                        match get_unmapped_key(Some(value)) {
+                            None => panic!("Weird key on skip"),
+                            Some(key) => println!("press {}", key)
+                        };
+                        println!("press: {:02X}", value);
+                        match keycode {
+                            None => {
+                                next_opcode = Some(opcode);
+                            },
+                            Some(key_code) => {
+                                next_opcode = None;
+                                pc +=2;
+                                if value == key_code {
+                                    pc +=2;
+                                }
+                            }
+                        }
                     }
                     SkipOp::SKNP(vx) => {
-                        // pc += 2;
-                        // let value = registers[vx as usize];
-                        next_opcode= Some(opcode);
-                        // todo: input
-                        // if !self.input.is_key_pressed(value) {
-                        //     self.pc += 2;
-                        // }
+                        let value = registers[vx as usize];
+                            match get_unmapped_key(Some(value)) {
+                            None => panic!("Weird key on skip"),
+                            Some(key) => println!("press any except {}", key)
+                        };
+                        match keycode {
+                            None => {
+                                next_opcode= Some(opcode);
+                            },
+                            Some(key_press) => {
+                                next_opcode = None;
+                                pc += 2;
+                                if !value == key_press {
+                                    pc += 2;
+                                }
+                            }
+                        }
                     }
                 },
                 OpCode::ADD(op) => match op {
@@ -328,6 +358,7 @@ impl State {
 
                         let y = vy as i32 + d as i32;
                         let e = false;
+                        println!("draw required");
                         // todo: screen
                         // self.screen.set_pixel(vx as i32, y, mem);
                         erased = erased | e;
