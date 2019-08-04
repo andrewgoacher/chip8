@@ -20,12 +20,9 @@ pub fn draw_sprite(state: &State, memory: &Memory, screen: &mut Vec<u8>,
 
     for byte_index in 0 .. n {
         let byte = memory.read(state.i + byte_index as u16);
-        let mut buts: [u8;8] = [0;8];
-        let mut ps: [u8;8] = [0;8];
 
         for bit_index in 0 .. 8 {
             let bit: u8 = (byte >> bit_index) & 0x1;
-            buts[bit_index] = bit;
 
             let curr_x = (row + byte_index) as u32 % width;
             let curr_y = (col + (7-bit)) as u32 % height;
@@ -37,7 +34,6 @@ pub fn draw_sprite(state: &State, memory: &Memory, screen: &mut Vec<u8>,
             }
 
             let pixel = curr_pixel ^ bit;
-            ps[bit_index] = pixel;
             screen[curr_idx] = pixel;
         }
     }

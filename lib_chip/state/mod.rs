@@ -128,29 +128,9 @@ impl State {
                     pc += 2;
                 }
                 LoadOp::LDF(vx) => {
-                    let sprite = registers[vx as usize];
+                    let sprite = registers[vx as usize] as u16;
                     pc += 2;
-
-                    let addr = match sprite {
-                        0x0 => 0x0,
-                        0x1 => 0x5,
-                        0x2 => 0xA,
-                        0x3 => 0xF,
-                        0x4 => 0x14,
-                        0x5 => 0x19,
-                        0x6 => 0x1E,
-                        0x7 => 0x23,
-                        0x8 => 0x28,
-                        0x9 => 0x2D,
-                        0xA => 0x32,
-                        0xB => 0x37,
-                        0xC => 0x3C,
-                        0xD => 0x41,
-                        0xE => 0x46,
-                        0xF => 0x4B,
-                        _ => panic!("Unknown sprite value"),
-                    };
-                    i = addr;
+                    i = 5 * sprite;
                 }
                     LoadOp::LDB(vx) => {
                         let val = registers[vx as usize] as u32;
@@ -286,6 +266,7 @@ impl State {
                         let new_i = i + x as u16;
                         i = new_i;
                         pc += 2;
+                        registers[0xF] = if new_i > 0xFFF { 1 } else { 0 };
                     }
                 },
                 OpCode::SUB(vx, vy) => {
