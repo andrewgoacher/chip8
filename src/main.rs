@@ -1,12 +1,12 @@
 extern crate lib_chip;
+extern crate sdl2;
+
 use lib_chip::{
     state::State,
     rom::Rom,
     memory::Memory,
     keyboard::get_key_mapped
 };
-
-extern crate sdl2;
 
 use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
@@ -16,7 +16,6 @@ use sdl2::render::Texture;
 
 fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32) -> Result<(), String> {
     texture.with_lock(None, |buffer: &mut [u8], _pitch: usize| {
-
         for y in 0 .. height {
             for x in 0 .. width {
                 let idx = ((width * y) + x) as usize;

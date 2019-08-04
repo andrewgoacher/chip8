@@ -1,13 +1,10 @@
-use super::memory::Memory;
-use super::opcode::{AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp,
-    parser::parse_opcode};
+pub mod functions;
+pub mod display;
+
+use crate::memory::Memory;
+use crate::opcode::{AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp};
+use functions::{get_opcode, draw_sprite};
 use rand::Rng;
-use std::boxed::Box;
-use std::{thread, time};
-
-use super::keyboard::get_unmapped_key;
-
-use std::fmt::{self, Formatter, Display};
 
 pub struct State {
     pub stack: [u16; 16],
@@ -24,61 +21,6 @@ pub struct State {
     pub opcode: Option<OpCode>,
     pub width: u32,
     pub height: u32
-}
-
-impl Display for State {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        writeln!(f, "state: ({:?})", self.last_opcode);
-        match self.opcode {
-            None => (),
-            Some(x) => {writeln!(f, "stored: {:?}", x);()}
-        };
-        writeln!(f, "delay: {}, sound {}", self.delay_timer, self.sound_timer);
-        writeln!(f, "pc: {} | stack pointer: {} | interrupt: {}", self.pc,
-            self.stack_pointer, self.i);
-        writeln!(f, "stack: 0x{:04X}", self.stack[self.stack_pointer as usize]);
-        writeln!(f, "draw: {} | run: {} | clear: {} ", self.draw_flag, 
-            self.run_flag, self.clear_flag)
-    }
-}
-
-fn draw_sprite(state: &State, memory: &Memory, screen: &mut Vec<u8>,
-  x: u8, y: u8, n: u8) -> bool {
-    let row = x;
-    let col = y;
-    let mut erased = false;
-    let width = state.width;
-    let height = state.height;
-
-    println!("drawing: {},{}", x, y);
-    for byte_index in 0 .. n {
-        let byte = memory.read(state.i + byte_index as u16);
-        let mut buts: [u8;8] = [0;8];
-        let mut ps: [u8;8] = [0;8];
-
-        for bit_index in 0 .. 8 {
-            let bit: u8 = (byte >> bit_index) & 0x1;
-            buts[bit_index] = bit;
-
-            let curr_x = (row + byte_index) as u32 % width;
-            let curr_y = (col + (7-bit)) as u32 % height;
-            let curr_idx = ((width * curr_y) + curr_x) as usize;
-            let curr_pixel = screen[curr_idx];
-
-            if bit == 1 && curr_pixel == 1 {
-                erased = true;
-            }
-
-            let pixel = curr_pixel ^ bit;
-            ps[bit_index] = pixel;
-            screen[curr_idx] = pixel;
-        }
-
-        println!("bits: {:?}", buts);
-        println!("pixels: {:?}", ps);
-    }
-
-    erased
 }
 
 impl State {
@@ -101,20 +43,10 @@ impl State {
         }
     }
 
-    fn get_opcode(&self, memory: &Memory) -> OpCode {
-        let pc = self.pc;
-        let high = memory.read(pc);
-        let low = memory.read(pc + 1);
-
-        parse_opcode(high, low)
-    }
-
     pub fn step(&self, memory: &mut Memory, keycode: Option<u8>, 
     screen: &mut Vec<u8>) -> State {
-        let mut running = self.run_flag;
+        let running = self.run_flag;
         let mut rng = rand::thread_rng();
-        let now = time::Instant::now();
-        let elapsed = now.elapsed().as_nanos();
 
         let mut delay_timer = self.delay_timer;
         let mut draw_flag = self.draw_flag;
@@ -143,11 +75,9 @@ impl State {
         }
 
         let opcode = match next_opcode {
-            None => self.get_opcode(memory),
+            None => get_opcode(self, memory),
             Some(code) => code
         };
-
-        // println!("next state: {:?}", opcode);
 
         match opcode {
             OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
@@ -228,7 +158,7 @@ impl State {
                         let (h, _) = ha.overflowing_div(100);
 
                         let (ta, _) = val.overflowing_rem(100);
-                        let (t, _) = val.overflowing_div(10);
+                        let (t, _) = ta.overflowing_div(10);
 
                         let (u, _) = val.overflowing_rem(10);
 
@@ -245,7 +175,7 @@ impl State {
 
                             memory.set(addr as usize, val);
                         }
-                        i += (vx as u16 + 1);
+                        i += vx as u16 + 1;
                         pc += 2;
                     }
                     LoadOp::LDV0XI(vx) => {
@@ -255,7 +185,7 @@ impl State {
 
                             registers[v as usize] = val;
                         }
-                        i += (vx as u16 + 1);
+                        i += vx as u16 + 1;
                         pc += 2;
                     }
                 },
