@@ -83,8 +83,8 @@ impl State {
             OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
             OpCode::CLS => {
                 clear_flag = true;
-                pc += 2;
                 draw_flag = true;
+                pc += 2;
             }
             OpCode::RET => {
                 stack_pointer -= 1;

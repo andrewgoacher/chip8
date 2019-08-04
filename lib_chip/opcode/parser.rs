@@ -20,6 +20,7 @@ pub fn parse_opcode(high: u8, low: u8) -> OpCode {
 
             let operand_high = raw & 0xF000;
             match operand_high {
+                0x0000 => OpCode::JP(JumpOp::JP(nnn)),
                 0x1000 => OpCode::JP(JumpOp::JP(nnn)),
                 0x2000 => OpCode::CALL(nnn),
                 0x3000 => OpCode::SKIP(SkipOp::SE(x, kk)),

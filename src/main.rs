@@ -47,7 +47,7 @@ pub fn main() -> Result<(), String> {
     const EMU_HEIGHT: u32 = 32;
 
     let mut state = State::new(EMU_WIDTH, EMU_HEIGHT);
-    let rom = Rom::load("./tetris.ch8").expect("Failed to load rom");
+    let rom = Rom::load("./TETRIS").expect("Failed to load rom");
     let mut memory = Memory::new();
     memory.set_range(0x200, rom.read_all());
 
@@ -88,10 +88,11 @@ pub fn main() -> Result<(), String> {
         // The rest of the game loop goes here...
         state = state.step(&mut memory, get_key_mapped(key), &mut screen);
 
-        if state.clear_flag || state.draw_flag {
-            canvas.clear();
+        if state.clear_flag {
+            screen =  vec![0x00; (EMU_WIDTH * EMU_HEIGHT) as usize];
         }
         if state.draw_flag {
+            canvas.clear();
             draw(&mut texture, &screen, EMU_WIDTH, EMU_HEIGHT, SCALE)?;
             canvas.copy(&texture, None, Some(Rect::new(0, 0, EMU_WIDTH * SCALE, EMU_HEIGHT * SCALE)))?;
         }
