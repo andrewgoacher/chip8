@@ -15,7 +15,7 @@ use sdl2::keyboard::Keycode;
 use sdl2::render::Texture;
 
 fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32) -> Result<(), String> {
-    texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
+    texture.with_lock(None, |buffer: &mut [u8], _pitch: usize| {
 
         for y in 0 .. height {
             for x in 0 .. width {
@@ -34,8 +34,8 @@ fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32) -> Res
 }
 
 pub fn main() -> Result<(), String> {
-    const WIDTH_SCALE: u32 = 10;
-    const HEIGHT_SCALE: u32 = 10;
+    // const WIDTH_SCALE: u32 = 10;
+    // const HEIGHT_SCALE: u32 = 10;
 
     const EMU_WIDTH: u32 = 64;
     const EMU_HEIGHT: u32 = 32;
@@ -86,13 +86,13 @@ pub fn main() -> Result<(), String> {
             canvas.clear();
         }
         if state.draw_flag {
-            draw(&mut texture, &screen, EMU_WIDTH, EMU_HEIGHT);
+            draw(&mut texture, &screen, EMU_WIDTH, EMU_HEIGHT)?;
             canvas.copy(&texture, None, Some(Rect::new(0, 0, EMU_WIDTH, EMU_HEIGHT)))?;
         }
         if state.clear_flag || state.draw_flag {
             state.draw_flag = false;
             state.clear_flag = false;
-            canvas.present();
+            canvas.present(); 
         }
     }
 
