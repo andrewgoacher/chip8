@@ -14,13 +14,31 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::Texture;
 
-fn draw(texture: &mut Texture, screen: &Vec<u8>) -> Result<(), String> {
+fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32) -> Result<(), String> {
     texture.with_lock(None, |buffer: &mut [u8], pitch: usize| {
-         for x in 0.. screen.len() {
-             buffer[x*3] = screen[x];
-             buffer[(x*3)+1] = screen[x];
-             buffer[(x*3) +2] = screen[x];
-         }
+
+        for y in 0 .. height {
+            for x in 0 .. width {
+                let idx = ((width * y) + x) as usize;
+                let offset = idx; // ((y * pitch as u32) + x) as usize;
+
+                let slot = screen[idx];
+                let color = if slot == 0 { 0xFF } else { 0x00 };
+
+                buffer[offset*3] = color;
+                buffer[(offset*3)+1] = color;
+                buffer[(offset*3)+2] = color;
+            }
+        }
+
+        //  for x in 0.. screen.len() {
+        //      let sx = screen[x];
+        //      let col = if sx == 0 { 0xFF } else { 0x00 };
+
+        //      buffer[x*3] =  col;
+        //      buffer[(x*3)+1] =col;
+        //      buffer[(x*3) +2] =col;
+        //  }
     })
 }
 
@@ -28,13 +46,12 @@ pub fn main() -> Result<(), String> {
     const width: u32 = 640;
     const height: u32 = 320;
 
-    let mut state = State::new();
-    let rom = Rom::load("./TETRIS").expect("Failed to load rom");
+    let mut state = State::new(width, height);
+    let rom = Rom::load("./tetris.ch8").expect("Failed to load rom");
     let mut memory = Memory::new();
     memory.set_range(0x200, rom.read_all());
 
-    let mut screen: Vec<u8> = vec![0; (width * height) as usize];
-    let mut display: Vec<(i32,i32,u8)> = Vec::new();
+    let mut screen: Vec<u8> = vec![0x00; (width * height) as usize];
 
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
@@ -68,23 +85,15 @@ pub fn main() -> Result<(), String> {
         }
         // The rest of the game loop goes here...
         // println!("{}", state);
-        state = state.step(&mut memory, get_key_mapped(key), &mut display);
+        state = state.step(&mut memory, get_key_mapped(key), &mut screen);
 
         if state.clear_flag || state.draw_flag {
             canvas.clear();
-            for d in display {
-                let(x, y, mem) = d;
-                let sanitised_x = (x as u32 % width);
-                let sanitised_y = (y as u32 % height);
-
-                let idx = ((width * sanitised_y) + sanitised_x) as usize;
-                screen[idx] = mem as u8;
-            }
-            display = Vec::new();
         }
         if state.draw_flag {
-            draw(&mut texture, &screen);
-            canvas.copy(&texture, None, None)?;
+            draw(&mut texture, &screen, width, height);
+            //canvas.copy(&texture, None, None)?;
+            canvas.copy(&texture, None, Some(Rect::new(0, 0, width, height)))?;
         }
         if state.clear_flag || state.draw_flag {
             state.draw_flag = false;

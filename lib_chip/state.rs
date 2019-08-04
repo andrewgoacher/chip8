@@ -20,7 +20,9 @@ pub struct State {
     pub run_flag: bool,
     pub clear_flag: bool,
     pub last_opcode: OpCode,
-    pub opcode: Option<OpCode>
+    pub opcode: Option<OpCode>,
+    pub width: u32,
+    pub height: u32
 }
 
 impl Display for State {
@@ -39,8 +41,47 @@ impl Display for State {
     }
 }
 
+fn draw_sprite(state: &State, memory: &Memory, screen: &mut Vec<u8>,
+  x: u8, y: u8, n: u8) -> bool {
+    let row = x;
+    let col = y;
+    let mut erased = false;
+    let width = state.width;
+    let height = state.height;
+
+    println!("drawing: {},{}", x, y);
+    for byte_index in 0 .. n {
+        let byte = memory.read(state.i + byte_index as u16);
+        let mut buts: [u8;8] = [0;8];
+        let mut ps: [u8;8] = [0;8];
+
+        for bit_index in 0 .. 8 {
+            let bit: u8 = (byte >> bit_index) & 0x1;
+            buts[bit_index] = bit;
+
+            let curr_x = (row + byte_index) as u32 % width;
+            let curr_y = (col + (7-bit)) as u32 % height;
+            let curr_idx = ((width * curr_y) + curr_x) as usize;
+            let curr_pixel = screen[curr_idx];
+
+            if bit == 1 && curr_pixel == 1 {
+                erased = true;
+            }
+
+            let pixel = curr_pixel ^ bit;
+            ps[bit_index] = pixel;
+            screen[curr_idx] = pixel;
+        }
+
+        println!("bits: {:?}", buts);
+        println!("pixels: {:?}", ps);
+    }
+
+    erased
+}
+
 impl State {
-    pub fn new() -> State {
+    pub fn new(w: u32, h: u32) -> State {
         State {
             stack: [0; 16],
             registers: [0; 16],
@@ -53,7 +94,9 @@ impl State {
             run_flag: true,
             clear_flag: true,
             last_opcode: OpCode::Unknown(0),
-            opcode: None
+            opcode: None,
+            width: w,
+            height: h
         }
     }
 
@@ -66,7 +109,7 @@ impl State {
     }
 
     pub fn step(&self, memory: &mut Memory, keycode: Option<u8>, 
-    screen: &mut Vec<(i32,i32,u8)>) -> State {
+    screen: &mut Vec<u8>) -> State {
         let mut running = self.run_flag;
         let mut rng = rand::thread_rng();
         let now = time::Instant::now();
@@ -138,7 +181,6 @@ impl State {
                     pc += 2;
                 }
                 LoadOp::LDKEY(vx) => {
-                    println!("press any key");
                     match keycode {
                         None => {
                             next_opcode = Some(opcode);
@@ -180,15 +222,18 @@ impl State {
                     i = addr;
                 }
                     LoadOp::LDB(vx) => {
-                        let val = registers[vx as usize];
-                        let h = val - (val % 100);
-                        let tmp_t = val - h;
-                        let t = tmp_t - (tmp_t % 10);
-                        let u = val - h - t;
+                        let val = registers[vx as usize] as u32;
+                        let (ha, _) = val.overflowing_rem(1000); 
+                        let (h, _) = ha.overflowing_div(100);
 
-                        memory.set(i as usize, h);
-                        memory.set((i + 1) as usize, t);
-                        memory.set((i + 2) as usize, u);
+                        let (ta, _) = val.overflowing_rem(100);
+                        let (t, _) = val.overflowing_div(10);
+
+                        let (u, _) = val.overflowing_rem(10);
+
+                        memory.set(i as usize, h as u8);
+                        memory.set((i + 1) as usize, t as u8);
+                        memory.set((i + 2) as usize, u as u8);
 
                         pc += 2;
                     }
@@ -198,8 +243,9 @@ impl State {
                             let addr = i + v as u16;
 
                             memory.set(addr as usize, val);
-                            pc += 2;
                         }
+                        i += (vx as u16 + 1);
+                        pc += 2;
                     }
                     LoadOp::LDV0XI(vx) => {
                         for v in 0..(vx + 1) {
@@ -207,8 +253,9 @@ impl State {
                             let val = memory.read(addr);
 
                             registers[v as usize] = val;
-                            pc += 2;
                         }
+                        i += (vx as u16 + 1);
+                        pc += 2;
                     }
                 },
                 OpCode::JP(jp) => match jp {
@@ -258,11 +305,6 @@ impl State {
                     }
                     SkipOp::SKP(vx) => {
                         let value = registers[vx as usize];
-                        match get_unmapped_key(Some(value)) {
-                            None => panic!("Weird key on skip"),
-                            Some(key) => println!("press {}", key)
-                        };
-                        println!("press: {:02X}", value);
                         match keycode {
                             None => {
                                 next_opcode = Some(opcode);
@@ -278,10 +320,6 @@ impl State {
                     }
                     SkipOp::SKNP(vx) => {
                         let value = registers[vx as usize];
-                            match get_unmapped_key(Some(value)) {
-                            None => panic!("Weird key on skip"),
-                            Some(key) => println!("press any except {}", key)
-                        };
                         match keycode {
                             None => {
                                 next_opcode= Some(opcode);
@@ -304,14 +342,12 @@ impl State {
                         pc += 2;
                     }
                     AddOp::ADDREG(vx, vy) => {
-                        let x = registers[vx as usize] as u16;
-                        let y = registers[vy as usize] as u16;
+                        let x = registers[vx as usize];
+                        let y = registers[vy as usize];
 
-                        let result = x + y;
-                        let carry = if result > 255 { 1 } else { 0 };
-                        let low = result & 0x00FF;
-                        registers[0xF] = carry;
-                        registers[vx as usize] = low as u8;
+                        let (result, carry) = x.overflowing_add(y);
+                        registers[0xF] = if carry { 1 } else { 0 };
+                        registers[vx as usize] = result;
                         pc += 2;
                     }
                     AddOp::ADDI(vx) => {
@@ -350,19 +386,11 @@ impl State {
                     pc += 2;
                 }
                 OpCode::DRW(vx, vy, data) => {
-                    let mut erased = false;
-                    for d in 0..data {
-                        let addr = i + d as u16;
-                        let mem = memory.read(addr);
-
-                        let y = vy as i32 + d as i32;
-                        let e = false;
-                        screen.push((vx as i32, y, mem));
-                        draw_flag = true;
-                        erased = erased | e;
-                    }
-                    registers[0xf] = if erased { 1 } else { 0 };
                     pc += 2;
+                    let erased = draw_sprite(self, memory, screen,
+                     vx, vy, data);
+                    registers[0xf] = if erased { 1 } else { 0 };
+                    draw_flag = true;
                 }
                 OpCode::OR(vx, vy) => {
                     let x = registers[vx as usize];
@@ -411,7 +439,9 @@ impl State {
             run_flag: running,
             clear_flag: clear_flag,
             opcode: next_opcode,
-            last_opcode: opcode
+            last_opcode: opcode,
+            width: self.width,
+            height: self.height
         }
     }
 }
