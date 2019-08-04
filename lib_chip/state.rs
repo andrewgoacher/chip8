@@ -1,5 +1,6 @@
 use super::memory::Memory;
-use super::opcode::{parse_opcode, AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp};
+use super::opcode::{AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp,
+    parser::parse_opcode};
 use rand::Rng;
 use std::boxed::Box;
 use std::{thread, time};
