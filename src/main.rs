@@ -55,7 +55,7 @@ pub fn main() -> Result<(), String> {
     let mut state = State::new(EMU_WIDTH, EMU_HEIGHT);
     let rom = Rom::load("./TETRIS").expect("Failed to load rom");
     let mut memory = Memory::new();
-    memory.set_range(0x200, rom.read_all());
+    memory.set_range(0x0200, rom.read_all());
 
     let mut screen: Vec<u8> = vec![0x00; (EMU_WIDTH * EMU_HEIGHT) as usize];
 
