@@ -92,9 +92,9 @@ pub fn main() -> Result<(), String> {
         }
 
         // The rest of the game loop goes here...
-        state = state.step(&mut memory, get_key_mapped(key), &mut screen);
         print_state(&state);
         println!("\n\n");
+        state = state.step(&mut memory, get_key_mapped(key), &mut screen);
 
         if state.clear_flag {
             screen =  vec![0x00; (EMU_WIDTH * EMU_HEIGHT) as usize];

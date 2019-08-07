@@ -88,8 +88,8 @@ impl State {
                 pc += 2;
             }
             OpCode::CALL(loc) => {
+                stack[stack_pointer as usize] = pc+2;
                 stack_pointer += 1;
-                stack[stack_pointer as usize] = pc;
                 pc = loc;
             }
             OpCode::RET => {
