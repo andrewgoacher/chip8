@@ -3,7 +3,7 @@ use super::State;
 
 impl Display for State {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        writeln!(f, "state: ({:?})", self.last_opcode)?;
+        writeln!(f, "state: ({})", self.last_opcode)?;
         match self.opcode {
             None => (),
             Some(x) => {writeln!(f, "stored: {:?}", x)?;()}

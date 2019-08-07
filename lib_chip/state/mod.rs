@@ -6,6 +6,7 @@ use crate::opcode::{AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp};
 use functions::{get_opcode, draw_sprite};
 use rand::Rng;
 
+#[derive(Debug)]
 pub struct State {
     pub stack: [u16; 16],
     pub registers: [u8; 16],
@@ -85,6 +86,11 @@ impl State {
                 clear_flag = true;
                 draw_flag = true;
                 pc += 2;
+            }
+            OpCode::CALL(loc) => {
+                stack_pointer += 1;
+                stack[stack_pointer as usize] = pc;
+                pc = loc;
             }
             OpCode::RET => {
                 stack_pointer -= 1;
@@ -178,11 +184,6 @@ impl State {
                         pc = loc + v0;
                     }
                 },
-                OpCode::CALL(loc) => {
-                    stack[stack_pointer as usize] = pc+2;
-                    stack_pointer += 1;
-                    pc = loc;
-                }
                 OpCode::SKIP(op) => match op {
                     SkipOp::SE(vx, data) => {
                         let x = registers[vx as usize];
@@ -233,12 +234,13 @@ impl State {
                         let value = registers[vx as usize];
                         match keycode {
                             None => {
-                                next_opcode= Some(opcode);
+                                next_opcode= None;
+                                pc += 2;
                             },
                             Some(key_press) => {
-                                next_opcode = None;
-                                pc += 2;
-                                if !value == key_press {
+                                if key_press == value {
+                                    next_opcode = Some(opcode);
+                                } else {
                                     pc += 2;
                                 }
                             }
@@ -273,8 +275,8 @@ impl State {
                     let x = registers[vx as usize];
                     let y = registers[vy as usize];
 
-                    let new_x = x - y;
-                    let not_borrow = if new_x > y { 1 } else { 0 };
+                    let (new_x,_) = x.overflowing_sub(y);
+                    let not_borrow = if x > y { 1 } else { 0 };
 
                     registers[vx as usize] = new_x;
                     registers[0xF] = not_borrow;
@@ -284,8 +286,8 @@ impl State {
                     let x = registers[vx as usize];
                     let y = registers[vy as usize];
 
-                    let new_x = y - x;
-                    let not_borrow = if new_x < y { 1 } else { 0 };
+                    let (new_x,_) = y.overflowing_sub(x);
+                    let not_borrow = if y > x { 1 } else { 0 };
 
                     registers[vx as usize] = new_x;
                     registers[0xF] = not_borrow;
@@ -327,13 +329,19 @@ impl State {
                 }
                 OpCode::SHIFT(op) => match op {
                     ShiftOp::SHR(vx) => {
-                        let x = registers[vx as usize];
-                        registers[vx as usize] = x >> 1;
+                        let mut x = registers[vx as usize];
+                        x = x >> 1;
+                        let lsb = x & 0x0F;
+                        registers[0xF] = if lsb == 1 { 1 } else { 0 };
+                        registers[vx as usize] = x;
                         pc += 2;
                     }
                     ShiftOp::SHL(vx) => {
-                        let x = registers[vx as usize];
-                        registers[vx as usize] = x << 1;
+                        let mut x = registers[vx as usize];
+                        x = x << 1;
+                        let msb = (x & 0xF0) >> 1;
+                        registers[0xF] = if msb == 1 { 1 } else { 0 };
+                        registers[vx as usize] = x;;
                         pc += 2;
                     }
                 },
