@@ -10,7 +10,7 @@ impl Rom {
         let data = load_rom_data(path)?;
 
         let rom = Rom {
-            data: data
+            data
         };
         
         Ok(rom)

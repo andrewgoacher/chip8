@@ -1,10 +1,22 @@
-pub mod functions;
-pub mod display;
+mod functions;
+mod display;
+mod loadops;
+mod jumpops;
+mod skipops;
+mod addops;
+mod shiftops;
+
 
 use crate::memory::Memory;
-use crate::opcode::{AddOp, JumpOp, LoadOp, OpCode, ShiftOp, SkipOp};
-use functions::{get_opcode, draw_sprite};
+use crate::opcode::{AddOp, JumpOp, OpCode, ShiftOp, SkipOp};
+use functions::{get_opcode};
 use rand::Rng;
+
+use self::loadops::handle_load_operands;
+use self::jumpops::handle_jump_ops;
+use self::skipops::handle_skip_ops;
+use self::addops::handle_add_op;
+use self::shiftops::handle_shift_op;
 
 #[derive(Debug)]
 pub struct State {
@@ -22,6 +34,181 @@ pub struct State {
     pub opcode: Option<OpCode>,
     pub width: u32,
     pub height: u32
+}
+
+fn delay_timer(state: &State) -> u8 {
+    let timer_state = if state.delay_timer > 0 {
+        state.delay_timer -1
+    } else {
+        0
+    };
+    timer_state
+}
+
+fn sound_timer(state: &State) -> u8 {
+    let timer_state = if state.sound_timer > 0 {
+        state.sound_timer-1
+    } else {
+        0
+    };
+    timer_state
+}
+
+fn call_routine(location: u16, pc: u16, state: State) -> State {
+    let mut stack = state.stack;
+    let mut stack_pointer = state.stack_pointer;
+    stack[stack_pointer as usize] = pc;
+    stack_pointer += 1;
+
+    State {
+        pc: location,
+        stack_pointer: stack_pointer,
+        stack: stack,
+        ..state
+    }
+}
+
+fn return_from_routine(state: State) -> State {
+    let stack_pointer = state.stack_pointer-1;
+    let pc = state.stack[stack_pointer as usize];
+    State {
+        pc: pc,
+        stack_pointer: stack_pointer,
+        ..state
+    }
+}
+
+fn subtract_y_from_x(state: State, pc: u16, vx: u8, vy: u8) -> State {
+    let mut registers = state.registers;
+    let x = registers[vx as usize];
+    let y = registers[vy as usize];
+
+    let (result, borrows) = x.overflowing_sub(y);
+    registers[vx as usize] = result;
+    registers[0xF] = if borrows { 0 } else { 1 };
+
+    State {
+        registers: registers,
+        pc: pc,
+        ..state
+    }
+}
+
+fn subtract_x_from_y(state: State, pc: u16, vx: u8, vy: u8) -> State {
+    let mut registers = state.registers;
+    let x = registers[vx as usize];
+    let y = registers[vy as usize];
+
+    let (result, borrows) = y.overflowing_sub(x);
+    registers[vx as usize] = result;
+    registers[0xF] = if borrows  { 0 } else { 1 };
+
+    State {
+        registers: registers,
+        pc: pc,
+        ..state
+    }
+}
+
+fn set_rnd(state: State, vx: u8, pc: u16, kk: u8) -> State {
+    let mut rng = rand::thread_rng();
+    let r:u8 = rng.gen();
+    let val = r & kk;
+    let mut registers = state.registers;
+    registers[vx as usize] = val;
+
+    State {
+        registers: registers,
+        pc: pc,
+        ..state
+    }
+}
+
+fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, screen: &mut [u8]) -> State {
+    let mut erased = 0;
+    let row = vx;
+    let col = vy;
+    let width = state.width;
+    let height = state.height;
+
+    for byte_index in 0 .. n {
+        let byte = memory.read(state.i + u16::from(byte_index));
+        
+        for bit_index in 0 .. 8 {
+            let bit: u8 = (byte >> bit_index) & 0x1;
+
+            let curr_x = u32::from(row + byte_index) % width;
+            let curr_y = u32::from(col + (7-bit)) % height;
+            let curr_idx = ((curr_y*width) + curr_x) as usize;
+            let curr_pixel = screen[curr_idx];
+
+
+            if bit == 1 && curr_pixel == 1 {
+                erased = 1;
+            }
+
+            let pixel = curr_pixel ^ bit;
+            screen[curr_idx] = pixel;
+        }
+    }
+
+    let mut registers = state.registers;
+    registers[0xF] = erased;
+
+    State {
+        registers: registers,
+        pc: pc,
+        draw_flag: true,
+        ..state
+    }
+}
+
+fn handle_logical(state: State, pc: u16, vx: u8, vy: u8, logical: Logical) -> State {
+    let mut registers = state.registers;
+    let x = registers[vx as usize];
+    let y = registers[vy as usize];
+    registers[vx as usize] = match logical {
+        and => x & y,
+        or => x | y,
+        xor => x ^ y
+    };
+
+    State {
+        pc: pc,
+        registers:registers,
+        ..state
+    }
+}
+
+enum Logical {
+    and,
+    or, 
+    xor
+}
+
+fn step_inner(state: State, memory: &mut Memory, keycode: Option<u8>, screen: &mut [u8], opcode: OpCode) -> State {
+    let pc: u16 = state.pc+2;
+    let d = delay_timer(&state);
+    let s = sound_timer(&state);
+
+    match opcode {
+        OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
+        OpCode::CLS => State {clear_flag: true, pc: pc, ..state},
+        OpCode::CALL(nnn) => call_routine(nnn, pc, state),
+        OpCode::RET => return_from_routine(state),
+        OpCode::LD(ld) => handle_load_operands(state, ld, pc, memory, keycode),
+        OpCode::JP(jp) => handle_jump_ops(state, jp),
+        OpCode::SKIP(sp) => handle_skip_ops(state, sp, pc, keycode),
+        OpCode::ADD(op) => handle_add_op(state, op, pc),
+        OpCode::SUB(vx, vy) => subtract_y_from_x(state, pc, vx, vy),
+        OpCode::SUBN(vx, vy) => subtract_x_from_y(state, pc, vx, vy),
+        OpCode::RND(vx, kk) => set_rnd(state, vx, pc, kk),
+        OpCode::DRW(vx, vy, n) => handle_draw(state, pc, vx, vy, n, memory, screen),
+        OpCode::OR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::or),
+        OpCode::AND(vx, vy) => handle_logical(state, pc, vx, vy, Logical::and),
+        OpCode::XOR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::xor),
+        OpCode::SHIFT(so) => handle_shift_op(state, pc, so)
+    }
 }
 
 impl State {
@@ -44,320 +231,13 @@ impl State {
         }
     }
 
-    pub fn step(&self, memory: &mut Memory, keycode: Option<u8>, 
+    pub fn step(self, memory: &mut Memory, keycode: Option<u8>, 
     screen: &mut Vec<u8>) -> State {
-        let running = self.run_flag;
-        let mut rng = rand::thread_rng();
-
-        let mut delay_timer = self.delay_timer;
-        let mut draw_flag = self.draw_flag;
-        let mut sound_timer = self.sound_timer;
-        let mut clear_flag = self.clear_flag;
-        let mut pc = self.pc;
-        let mut stack_pointer = self.stack_pointer;
-        let mut stack = self.stack;
-        let mut registers = self.registers;
-        let mut i = self.i;
-
-        let mut next_opcode: Option<OpCode> = self.opcode;
-
-        if self.delay_timer > 0 {
-            delay_timer -= 1;
-            if delay_timer == 0 {
-                //draw_flag = true;
-            }
-        }
-
-        if self.sound_timer > 0 {
-            sound_timer -= 1;
-            if sound_timer == 0 {
-                // todo: do sound
-            }
-        }
-
-        let opcode = match next_opcode {
-            None => get_opcode(self, memory),
+        let opcode = match self.opcode {
+            None => get_opcode(&self, memory),
             Some(code) => code
         };
 
-        match opcode {
-            OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
-            OpCode::CLS => {
-                clear_flag = true;
-                // draw_flag = true;
-                pc += 2;
-            }
-            OpCode::CALL(loc) => {
-                stack[stack_pointer as usize] = pc+2;
-                stack_pointer += 1;
-                pc = loc;
-            }
-            OpCode::RET => {
-                stack_pointer -= 1;
-                pc = stack[stack_pointer as usize];
-            }
-            OpCode::LD(op) => match op {
-                LoadOp::LD(vx, data) => {
-                    registers[vx as usize] = data;
-                    pc += 2;
-                }
-                LoadOp::LDI(data) => {
-                    i = data;
-                    pc += 2;
-                }
-                LoadOp::LDXY(vx, vy) => {
-                    registers[vx as usize] = registers[vy as usize];
-                    pc += 2;
-                }
-                LoadOp::LDVXDT(vx) => {
-                    registers[vx as usize] = delay_timer;
-                    pc += 2;
-                }
-                LoadOp::LDDTVX(vx) => {
-                    delay_timer = registers[vx as usize];
-                    pc += 2;
-                }
-                LoadOp::LDKEY(vx) => {
-                    match keycode {
-                        None => {
-                            next_opcode = Some(opcode);
-                        },
-                        Some(key_press) => {
-                            next_opcode = None;
-                            registers[vx as usize] = key_press;
-                            pc += 2;
-                        }
-                    }
-                }
-                LoadOp::LDSTVX(vx) => {
-                    sound_timer = registers[vx as usize];
-                    pc += 2;
-                }
-                LoadOp::LDF(vx) => {
-                    let sprite = registers[vx as usize] as u16;
-                    pc += 2;
-                    i = 5 * sprite;
-                }
-                    LoadOp::LDB(vx) => {
-                        let val = registers[vx as usize];
-                        let units = val % 10;
-                        let tens = (val - units) % 100;
-                        let hundreds = val - tens - units;
-
-                        memory.set(i as usize, hundreds);
-                        memory.set((i + 1) as usize, tens);
-                        memory.set((i + 2) as usize, units);
-
-                        pc += 2;
-                    }
-                    LoadOp::LDIV0X(vx) => {
-                        for v in 0..(vx + 1) {
-                            let val = registers[v as usize];
-                            let addr = i + v as u16;
-
-                            memory.set(addr as usize, val);
-                        }
-                        // i += vx as u16 + 1;
-                        pc += 2;
-                    }
-                    LoadOp::LDV0XI(vx) => {
-                        for v in 0..(vx + 1) {
-                            let addr = i + v as u16;
-                            let val = memory.read(addr);
-
-                            registers[v as usize] = val;
-                        }
-                        // i += vx as u16 + 1;
-                        pc += 2;
-                    }
-                },
-                OpCode::JP(jp) => match jp {
-                    JumpOp::JP(loc) => {
-                        pc = loc;
-                    }
-                    JumpOp::JPV0(loc) => {
-                        let v0 = registers[0x0] as u16;
-                        pc = loc + v0;
-                    }
-                },
-                OpCode::SKIP(op) => match op {
-                    SkipOp::SE(vx, data) => {
-                        let x = registers[vx as usize];
-                        pc += 2;
-                        if x == data {
-                            pc += 2;
-                        }
-                    }
-                    SkipOp::SNE(vx, data) => {
-                        let x = registers[vx as usize];
-                        pc += 2;
-                        if x != data {
-                            pc += 2;
-                        }
-                    }
-                    SkipOp::SEXY(vx, vy) => {
-                        let x = registers[vx as usize];
-                        let y = registers[vy as usize];
-                        pc += 2;
-                        if x == y {
-                            pc += 2;
-                        }
-                    }
-                    SkipOp::SNEXY(vx, vy) => {
-                        let x = registers[vx as usize];
-                        let y = registers[vy as usize];
-                        pc += 2;
-                        if x != y {
-                            pc += 2;
-                        }
-                    }
-                    // todo: I don't think these need to wait for input but it would
-                    // be nice to synchronise them
-                    SkipOp::SKP(vx) => {
-                        let value = registers[vx as usize];
-                        match keycode {
-                            None => {
-                                pc += 2;
-                            },
-                            Some(key_code) => {
-                                pc +=2;
-                                if value == key_code {
-                                    pc +=2;
-                                }
-                            }
-                        }
-                    }
-
-                    // todo: Same here
-                    SkipOp::SKNP(vx) => {
-                        let value = registers[vx as usize];
-                        match keycode {
-                            None => {
-                                pc += 2;
-                            },
-                            Some(key_press) => {
-                                pc += 2;
-                                if key_press != value {
-                                    pc += 2;
-                                }
-                            }
-                        }
-                    }
-                },
-                OpCode::ADD(op) => match op {
-                    AddOp::ADD(vx, data) => {
-                        let x = registers[vx as usize];
-                        let (val, _) = x.overflowing_add(data);
-                        registers[vx as usize] = val;
-                        pc += 2;
-                    }
-                    AddOp::ADDREG(vx, vy) => {
-                        let x = registers[vx as usize];
-                        let y = registers[vy as usize];
-
-                        let (result, carry) = x.overflowing_add(y);
-                        registers[0xF] = if carry { 1 } else { 0 };
-                        registers[vx as usize] = result;
-                        pc += 2;
-                    }
-                    AddOp::ADDI(vx) => {
-                        let x = registers[vx as usize];
-                        let new_i = i + x as u16;
-                        i = new_i;
-                        pc += 2;
-                    }
-                },
-                OpCode::SUB(vx, vy) => {
-                    let x = registers[vx as usize];
-                    let y = registers[vy as usize];
-
-                    let (new_x,_) = x.overflowing_sub(y);
-                    let not_borrow = if x > y { 1 } else { 0 };
-
-                    registers[vx as usize] = new_x;
-                    registers[0xF] = not_borrow;
-                    pc += 2;
-                }
-                OpCode::SUBN(vx, vy) => {
-                    let x = registers[vx as usize];
-                    let y = registers[vy as usize];
-
-                    let (new_x,_) = y.overflowing_sub(x);
-                    let not_borrow = if y > x { 1 } else { 0 };
-
-                    registers[vx as usize] = new_x;
-                    registers[0xF] = not_borrow;
-                    pc += 2;
-                }
-                OpCode::RND(vx, data) => {
-                    let r: u8 = rng.gen();
-                    let val = r & data;
-                    registers[vx as usize] = val;
-                    pc += 2;
-                }
-                OpCode::DRW(vx, vy, data) => {
-                    pc += 2;
-                    let erased = draw_sprite(self, memory, screen,
-                     vx, vy, data);
-                    registers[0xf] = if erased { 1 } else { 0 };
-                    draw_flag = true;
-                }
-                OpCode::OR(vx, vy) => {
-                    let x = registers[vx as usize];
-                    let y = registers[vy as usize];
-
-                    registers[vx as usize] = x | y;
-                    pc += 2;
-                }
-                OpCode::AND(vx, vy) => {
-                    let x = registers[vx as usize];
-                    let y = registers[vy as usize];
-
-                    registers[vx as usize] = x & y;
-                    pc += 2;
-                }
-                OpCode::XOR(vx, vy) => {
-                    let x = registers[vx as usize];
-                    let y = registers[vy as usize];
-
-                    registers[vx as usize] = x ^ y;
-                    pc += 2;
-                }
-                OpCode::SHIFT(op) => match op {
-                    ShiftOp::SHR(vx) => {
-                        let mut x = registers[vx as usize];
-                        x = x >> 1;
-                        let lsb = x & 0x0F;
-                        registers[0xF] = if lsb == 1 { 1 } else { 0 };
-                        registers[vx as usize] = x;
-                        pc += 2;
-                    }
-                    ShiftOp::SHL(vx) => {
-                        let mut x = registers[vx as usize];
-                        x = x << 1;
-                        let msb = (x & 0xF0) >> 1;
-                        registers[0xF] = if msb == 1 { 1 } else { 0 };
-                        registers[vx as usize] = x;;
-                        pc += 2;
-                    }
-                },
-        };
-
-        State {
-            stack: stack,
-            registers: registers,
-            delay_timer: delay_timer,
-            sound_timer: sound_timer,
-            pc: pc,
-            stack_pointer: stack_pointer,
-            i: i,
-            draw_flag: draw_flag,
-            run_flag: running,
-            clear_flag: clear_flag,
-            opcode: next_opcode,
-            last_opcode: opcode,
-            width: self.width,
-            height: self.height
-        }
+        step_inner(self, memory, keycode, &mut screen[..], opcode)
     }
 }

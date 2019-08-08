@@ -14,7 +14,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::Texture;
 
-fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32, scale: u32) -> Result<(), String> {
+fn draw(texture: &mut Texture, screen: &[u8], width: u32, height: u32, scale: u32) -> Result<(), String> {
     texture.with_lock(None, |buffer: &mut [u8], _pitch: usize| {
         for y in 0 .. height {
             for x in 0 .. width {

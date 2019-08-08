@@ -4,8 +4,8 @@ use super::State;
 fn stack_to_string(stack: &[u16]) -> String {
     let mut s = String::new();
     s.push('[');
-    for i in 0 .. 16 {
-        s.push_str(&format!("0x{:04X}", stack[i]));
+    for (i, item) in stack.iter().enumerate() {
+        s.push_str(&format!("0x{:04X}", item));
         if i != 15 {
             s.push(',');
         }
@@ -19,7 +19,7 @@ impl Display for State {
         writeln!(f, "state: ({})", self.last_opcode)?;
         match self.opcode {
             None => (),
-            Some(x) => {writeln!(f, "stored: {:?}", x)?;()}
+            Some(x) => {writeln!(f, "stored: {:?}", x)?;}
         };
         writeln!(f, "registers: {:?}", self.registers)?;
         writeln!(f, "stack: {:?}", stack_to_string(&self.stack[..]))?;

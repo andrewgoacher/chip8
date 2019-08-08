@@ -3,7 +3,7 @@ use super::{AddOp, OpCode, ShiftOp, SkipOp, LoadOp, JumpOp};
 
 pub fn parse_opcode(high: u8, low: u8) -> OpCode {
    
-    let opcode: u16 = (high as u16) << 8 | low as u16;
+    let opcode: u16 = (u16::from(high)) << 8 | u16::from(low);
     let x: u8   = ((opcode >> 8) & 0x000F) as u8; // the lower 4 bits of the high byte
     let y: u8   = ((opcode >> 4) & 0x000F) as u8; // the upper 4 bits of the low byte
     let n: u8   = (opcode & 0x000F) as u8; // the lowest 4 bits
