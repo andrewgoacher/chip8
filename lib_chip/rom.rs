@@ -5,6 +5,14 @@ pub struct Rom {
     data: Vec<u8>
 }
 
+impl Default for Rom {
+    fn default() -> Self {
+        Rom {
+            data: vec![0x0; 200]
+        }
+    }
+}
+
 impl Rom {
     pub fn load(path: &str) -> Result<Rom, std::io::Error> {
         let data = load_rom_data(path)?;

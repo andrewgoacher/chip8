@@ -1,9 +1,12 @@
 use super::{AddOp, OpCode, ShiftOp, SkipOp, LoadOp, JumpOp};
 
+fn generate_opcode(high: u8, low: u8) -> u16 {
+    (u16::from(high)) << 8 | u16::from(low)
+}
 
 pub fn parse_opcode(high: u8, low: u8) -> OpCode {
    
-    let opcode: u16 = (u16::from(high)) << 8 | u16::from(low);
+    let opcode: u16 = generate_opcode(high, low);
     let x: u8   = ((opcode >> 8) & 0x000F) as u8; // the lower 4 bits of the high byte
     let y: u8   = ((opcode >> 4) & 0x000F) as u8; // the upper 4 bits of the low byte
     let n: u8   = (opcode & 0x000F) as u8; // the lowest 4 bits
@@ -73,3 +76,47 @@ pub fn parse_opcode(high: u8, low: u8) -> OpCode {
         _ => OpCode::Unknown(opcode)
     }
 }
+
+// #[cfg(test)]
+// mod tests {
+//     use super::*;
+//     use super::super::OpCode;
+
+//     #[test]
+//     fn it_will_generate_opcode() {
+//         const HIGH: u8 = 0xFF;
+//         const LOW: u8 = 0xE0;
+
+//         let actual = generate_opcode(HIGH, LOW);
+//         assert_eq!(0xFFE0, actual);
+//     }
+
+//     #[test]
+//     fn it_will_return_clear_screen() {
+//         const HIGH: u8 = 0x00;
+//         const LOW: u8 = 0xE0;
+
+//         let opcode = parse_opcode(HIGH, LOW);
+//         assert_eq!(OpCode::CLS, opcode)
+//     }
+
+//     #[test]
+//     fn it_will_return_ret() {
+//         const HIGH:u8 = 0x00;
+//         const LOW: u8 = 0xEE;
+
+//         let actual = parse_opcode(HIGH, LOW);
+//         assert_eq!(OpCode::RET, actual)
+//     }
+
+//     #[test]
+//     fn any_other_input_with_high00_will_return_unknown() {
+//         const HIGH:u8 = 0x00;
+//         const LOW: u8 = 0x00;
+
+//         let actual = parse_opcode(HIGH, LOW);
+//         let opcode = generate_opcode(HIGH, LOW);
+
+//         assert_eq!(OpCode::Unknown(opcode), actual)
+//     }
+// }
