@@ -27,7 +27,7 @@ fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32, scale:
                         let ix = (x*scale) + i;
                         let iy = (y*scale) + j;
                         let tote_width = width * scale;
-                        let tote_height = height * scale;
+                        let _tote_height = height * scale;
                         let offset = ((tote_width * iy) + ix) as usize;
             
                         buffer[offset*3] = color;
@@ -40,7 +40,7 @@ fn draw(texture: &mut Texture, screen: &Vec<u8>, width: u32, height: u32, scale:
     })
 }
 
-use lib_chip::state::display::*;
+
 
 fn print_state(state: &State) {
     println!("{}", state)

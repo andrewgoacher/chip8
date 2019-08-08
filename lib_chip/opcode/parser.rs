@@ -1,5 +1,5 @@
 use super::{AddOp, OpCode, ShiftOp, SkipOp, LoadOp, JumpOp};
-use crate::memory::Memory;
+
 
 pub fn parse_opcode(high: u8, low: u8) -> OpCode {
    
