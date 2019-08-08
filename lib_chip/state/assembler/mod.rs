@@ -32,6 +32,7 @@ fn call_routine(location: u16, pc: u16, state: State) -> State {
         pc: location,
         stack_pointer,
         stack,
+        last_opcode: OpCode::CALL(location),
         ..state
     }
 }
@@ -42,6 +43,7 @@ fn return_from_routine(state: State) -> State {
     State {
         pc,
         stack_pointer,
+        last_opcode: OpCode::RET,
         ..state
     }
 }
@@ -58,6 +60,7 @@ fn subtract_y_from_x(state: State, pc: u16, vx: u8, vy: u8) -> State {
     State {
         registers,
         pc,
+        last_opcode: OpCode::SUB(vx,vy),
         ..state
     }
 }
@@ -74,6 +77,7 @@ fn subtract_x_from_y(state: State, pc: u16, vx: u8, vy: u8) -> State {
     State {
         registers,
         pc,
+        last_opcode: OpCode::SUBN(vx,vy),
         ..state
     }
 }
@@ -88,6 +92,7 @@ fn set_rnd(state: State, vx: u8, pc: u16, kk: u8) -> State {
     State {
         registers,
         pc,
+        last_opcode: OpCode::RND(vx, kk),
         ..state
     }
 }
@@ -127,6 +132,7 @@ fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, sc
         registers,
         pc,
         draw_flag: true,
+        last_opcode: OpCode::DRW(vx,vy,n),
         ..state
     }
 }
@@ -135,15 +141,18 @@ fn handle_logical(state: State, pc: u16, vx: u8, vy: u8, logical: Logical) -> St
     let mut registers = state.registers;
     let x = registers[vx as usize];
     let y = registers[vy as usize];
-    registers[vx as usize] = match logical {
-        Logical::AND => x & y,
-        Logical::OR => x | y,
-        Logical::XOR => x ^ y
+    let (r,o) = match logical {
+        Logical::AND => (x & y, OpCode::AND(vx,vy)),
+        Logical::OR => (x | y, OpCode::OR(vx,vy)),
+        Logical::XOR => (x ^ y, OpCode::XOR(vx,vy))
     };
+
+    registers[vx as usize] = r;
 
     State {
         pc,
         registers,
+        last_opcode: o,
         ..state
     }
 }
@@ -153,7 +162,7 @@ pub fn assemble(state: State, memory: &mut Memory, keycode: Option<u8>, screen: 
 
     match opcode {
         OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
-        OpCode::CLS => State {clear_flag: true, pc, ..state},
+        OpCode::CLS => State {clear_flag: true, pc, last_opcode: OpCode::CLS, ..state},
         OpCode::CALL(nnn) => call_routine(nnn, pc, state),
         OpCode::RET => return_from_routine(state),
         OpCode::LD(ld) => handle_load_operands(state, ld, pc, memory, keycode),

@@ -7,6 +7,7 @@ fn load_x_from_y(state: State, vx: u8, vy: u8, pc: u16) -> State {
     registers[vx as usize] = registers[vy as usize];
 
     State {
+        last_opcode: OpCode::LD(LoadOp::LDXY(vx,vy)),
         registers,
         pc,
         ..state
@@ -17,6 +18,7 @@ fn load_delay_timer(state: State, vx: u8, pc: u16) -> State {
     let mut registers = state.registers;
     registers[vx as usize] = state.delay_timer;
     State {
+        last_opcode: OpCode::LD(LoadOp::LDVXDT(vx)),
         registers,
         pc,
         ..state
@@ -25,6 +27,7 @@ fn load_delay_timer(state: State, vx: u8, pc: u16) -> State {
 
 fn set_i(state: State, pc: u16, kk: u16) -> State {
     State {
+        last_opcode: OpCode::LD(LoadOp::LDI(kk)),
         i: kk,
         pc,
         ..state
@@ -35,6 +38,7 @@ fn set_delay_timer(state: State, vx: u8, pc: u16) -> State {
     let delay = state.registers[vx as usize];
     State {
         delay_timer: delay,
+        last_opcode: OpCode::LD(LoadOp::LDDTVX(vx)),
         pc,
         ..state
     }
@@ -54,6 +58,7 @@ fn handle_load_key(state: State, vx: u8, pc: u16, keycode: Option<u8>, loadop: L
 
     State {
         opcode: next_opcode,
+        last_opcode: OpCode::LD(LoadOp::LDKEY(vx)),
         pc,
         registers,
         ..state
@@ -63,6 +68,7 @@ fn handle_load_key(state: State, vx: u8, pc: u16, keycode: Option<u8>, loadop: L
 fn set_sound_timer(state: State, vx: u8, pc: u16) -> State {
     let sound_timer = state.registers[vx as usize];
     State {
+        last_opcode: OpCode::LD(LoadOp::LDSTVX(vx)),
         pc,
         sound_timer,
         ..state
@@ -75,6 +81,7 @@ fn load_sprite(state: State, vx: u8, pc: u16) -> State {
     let sprite = u16::from(state.registers[vx as usize]);
     let i = BYTES_PER_SPRITE * sprite;
     State {
+        last_opcode: OpCode::LD(LoadOp::LDF(vx)),
         pc,
         i,
         ..state
@@ -93,6 +100,7 @@ fn handle_bcd_representation(state: State, memory: &mut Memory, pc: u16, vx: u8)
     memory.set((i + 2) as usize, units);
 
     State {
+        last_opcode: OpCode::LD(LoadOp::LDB(vx)),
         pc,
         ..state
     }
@@ -108,6 +116,7 @@ fn load_from_registers(state: State, memory: &mut Memory, vx: u8, pc: u16) -> St
     }
     
     State {
+        last_opcode: OpCode::LD(LoadOp::LDIV0X(vx)),
         pc,
         ..state
     }
@@ -117,6 +126,7 @@ fn set_register(state: State, pc: u16, vx: u8, kk: u8) -> State {
     let mut registers = state.registers;
     registers[vx as usize] = kk;
     State {
+        last_opcode: OpCode::LD(LoadOp::LD(vx, kk)),
         registers,
         pc,
         ..state
@@ -136,6 +146,7 @@ fn set_registers(state: State, pc: u16, vx: u8, memory: &Memory) -> State {
     State {
         registers,
         pc,
+        last_opcode: OpCode::LD(LoadOp::LDV0XI(vx)),
         ..state
     }
 }
