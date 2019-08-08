@@ -84,7 +84,7 @@ impl State {
             OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
             OpCode::CLS => {
                 clear_flag = true;
-                draw_flag = true;
+                // draw_flag = true;
                 pc += 2;
             }
             OpCode::CALL(loc) => {
@@ -139,18 +139,14 @@ impl State {
                     i = 5 * sprite;
                 }
                     LoadOp::LDB(vx) => {
-                        let val = registers[vx as usize] as u32;
-                        let (ha, _) = val.overflowing_rem(1000); 
-                        let (h, _) = ha.overflowing_div(100);
+                        let val = registers[vx as usize];
+                        let units = val % 10;
+                        let tens = (val - units) % 100;
+                        let hundreds = val - tens - units;
 
-                        let (ta, _) = val.overflowing_rem(100);
-                        let (t, _) = ta.overflowing_div(10);
-
-                        let (u, _) = val.overflowing_rem(10);
-
-                        memory.set(i as usize, h as u8);
-                        memory.set((i + 1) as usize, t as u8);
-                        memory.set((i + 2) as usize, u as u8);
+                        memory.set(i as usize, hundreds);
+                        memory.set((i + 1) as usize, tens);
+                        memory.set((i + 2) as usize, units);
 
                         pc += 2;
                     }
@@ -161,7 +157,7 @@ impl State {
 
                             memory.set(addr as usize, val);
                         }
-                        i += vx as u16 + 1;
+                        // i += vx as u16 + 1;
                         pc += 2;
                     }
                     LoadOp::LDV0XI(vx) => {
@@ -171,7 +167,7 @@ impl State {
 
                             registers[v as usize] = val;
                         }
-                        i += vx as u16 + 1;
+                        // i += vx as u16 + 1;
                         pc += 2;
                     }
                 },
@@ -215,14 +211,15 @@ impl State {
                             pc += 2;
                         }
                     }
+                    // todo: I don't think these need to wait for input but it would
+                    // be nice to synchronise them
                     SkipOp::SKP(vx) => {
                         let value = registers[vx as usize];
                         match keycode {
                             None => {
-                                next_opcode = Some(opcode);
+                                pc += 2;
                             },
                             Some(key_code) => {
-                                next_opcode = None;
                                 pc +=2;
                                 if value == key_code {
                                     pc +=2;
@@ -230,17 +227,17 @@ impl State {
                             }
                         }
                     }
+
+                    // todo: Same here
                     SkipOp::SKNP(vx) => {
                         let value = registers[vx as usize];
                         match keycode {
                             None => {
-                                next_opcode= None;
                                 pc += 2;
                             },
                             Some(key_press) => {
-                                if key_press == value {
-                                    next_opcode = Some(opcode);
-                                } else {
+                                pc += 2;
+                                if key_press != value {
                                     pc += 2;
                                 }
                             }
@@ -268,7 +265,6 @@ impl State {
                         let new_i = i + x as u16;
                         i = new_i;
                         pc += 2;
-                        registers[0xF] = if new_i > 0xFFF { 1 } else { 0 };
                     }
                 },
                 OpCode::SUB(vx, vy) => {

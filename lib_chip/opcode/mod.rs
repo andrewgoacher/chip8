@@ -98,11 +98,26 @@ pub enum LoadOp {
     LDXY(Register, Register),
     LDVXDT(Register),
     LDDTVX(Register),
+    /// Wait for keypress, store value in A
+    /// (0xFx0A)
     LDKEY(Register),
     LDSTVX(Register),
+    /// Set I = location of sprite for digit Vx.
+    /// The value of I is set to the location for the hexadecimal sprite 
+    /// corresponding to the value of Vx. See section 2.4, Display, for more 
+    /// information on the Chip-8 hexadecimal font.
+    /// (0xFx29)
     LDF(Register),
     LDB(Register),
+    /// Store registers V0 through Vx in memory starting at location I.
+    /// The interpreter copies the values of registers V0 through Vx into memory, 
+    /// starting at the address in I.
+    /// (0xFx55)
     LDIV0X(Register),
+    /// Read registers V0 through Vx from memory starting at location I.
+    /// The interpreter reads values from memory starting at location I into 
+    /// registers V0 through Vx.
+    /// (0xFx65)
     LDV0XI(Register),
 }
 
