@@ -9,8 +9,8 @@ fn handle_shift_left(state: State, pc: u16, vx: u8) -> State {
     registers[vx as usize] = x;
 
     State {
-        pc: pc,
-        registers: registers,
+        pc,
+        registers,
         ..state
     }
 }
@@ -23,8 +23,8 @@ fn handle_shift_right(state: State, pc: u16, vx: u8) -> State {
     registers[vx as usize] = x;
 
     State {
-        pc: pc,
-        registers: registers,
+        pc,
+        registers,
         ..state
     }
 }

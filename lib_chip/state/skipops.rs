@@ -9,7 +9,7 @@ fn handle_skip_if_equal(state: State, vx: u8, kk: u8, pc: u16) -> State {
     }
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -22,7 +22,7 @@ fn handle_skip_if_not_equal(state: State, vx: u8, kk: u8, pc: u16) -> State {
     }
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -36,7 +36,7 @@ fn handle_skip_if_registers_equal(state: State, vx: u8, vy: u8, pc: u16) -> Stat
     }
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -50,7 +50,7 @@ fn handle_skip_if_registers_not_equal(state: State, vx: u8, vy: u8, pc: u16) -> 
     }
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -68,7 +68,7 @@ fn handle_skip_on_keyboard(state: State, keycode: Option<u8>, vx: u8, pc: u16) -
     };
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -86,7 +86,7 @@ fn handle_skip_on_keyboard_up(state: State, keycode: Option<u8>, vx: u8, pc: u16
     };
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }

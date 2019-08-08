@@ -7,8 +7,8 @@ fn load_x_from_y(state: State, vx: u8, vy: u8, pc: u16) -> State {
     registers[vx as usize] = registers[vy as usize];
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -17,8 +17,8 @@ fn load_delay_timer(state: State, vx: u8, pc: u16) -> State {
     let mut registers = state.registers;
     registers[vx as usize] = state.delay_timer;
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -26,7 +26,7 @@ fn load_delay_timer(state: State, vx: u8, pc: u16) -> State {
 fn set_i(state: State, pc: u16, kk: u16) -> State {
     State {
         i: kk,
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -35,7 +35,7 @@ fn set_delay_timer(state: State, vx: u8, pc: u16) -> State {
     let delay = state.registers[vx as usize];
     State {
         delay_timer: delay,
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -54,8 +54,8 @@ fn handle_load_key(state: State, vx: u8, pc: u16, keycode: Option<u8>, loadop: L
 
     State {
         opcode: next_opcode,
-        pc: pc,
-        registers: registers,
+        pc,
+        registers,
         ..state
     }
 }
@@ -63,8 +63,8 @@ fn handle_load_key(state: State, vx: u8, pc: u16, keycode: Option<u8>, loadop: L
 fn set_sound_timer(state: State, vx: u8, pc: u16) -> State {
     let sound_timer = state.registers[vx as usize];
     State {
-        pc: pc,
-        sound_timer: sound_timer,
+        pc,
+        sound_timer,
         ..state
     }
 }
@@ -75,8 +75,8 @@ fn load_sprite(state: State, vx: u8, pc: u16) -> State {
     let sprite = u16::from(state.registers[vx as usize]);
     let i = BYTES_PER_SPRITE * sprite;
     State {
-        pc: pc,
-        i: i,
+        pc,
+        i,
         ..state
     }
 }
@@ -93,7 +93,7 @@ fn handle_bcd_representation(state: State, memory: &mut Memory, pc: u16, vx: u8)
     memory.set((i + 2) as usize, units);
 
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -101,14 +101,14 @@ fn handle_bcd_representation(state: State, memory: &mut Memory, pc: u16, vx: u8)
 fn load_from_registers(state: State, memory: &mut Memory, vx: u8, pc: u16) -> State {
     let registers = state.registers;
     let i = state.i;
-    for v in 0..(u16::from(vx)+1) {
+    for v in 0..=u16::from(vx) {
         let val = registers[v as usize];
-        let addr = u16::from(i+v);
+        let addr = i+v;
         memory.set(addr as usize, val);
     }
     
     State {
-        pc: pc,
+        pc,
         ..state
     }
 }
@@ -117,8 +117,8 @@ fn set_register(state: State, pc: u16, vx: u8, kk: u8) -> State {
     let mut registers = state.registers;
     registers[vx as usize] = kk;
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -127,15 +127,15 @@ fn set_registers(state: State, pc: u16, vx: u8, memory: &Memory) -> State {
     let mut registers = state.registers;
     let i = state.i;
 
-    for v in 0..(u16::from(vx)+1) {
-        let addr = u16::from(i+v);
+    for v in 0..=u16::from(vx) {
+        let addr = i+v;
         let val = memory.read(addr);
         registers[v as usize] = val;
     }
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }

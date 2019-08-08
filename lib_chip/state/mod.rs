@@ -8,8 +8,8 @@ mod shiftops;
 
 
 use crate::memory::Memory;
-use crate::opcode::{AddOp, JumpOp, OpCode, ShiftOp, SkipOp};
-use functions::{get_opcode};
+use crate::opcode::OpCode;
+use functions::get_opcode;
 use rand::Rng;
 
 use self::loadops::handle_load_operands;
@@ -37,21 +37,19 @@ pub struct State {
 }
 
 fn delay_timer(state: &State) -> u8 {
-    let timer_state = if state.delay_timer > 0 {
+    if state.delay_timer > 0 {
         state.delay_timer -1
     } else {
         0
-    };
-    timer_state
+    }
 }
 
 fn sound_timer(state: &State) -> u8 {
-    let timer_state = if state.sound_timer > 0 {
+    if state.sound_timer > 0 {
         state.sound_timer-1
     } else {
         0
-    };
-    timer_state
+    }
 }
 
 fn call_routine(location: u16, pc: u16, state: State) -> State {
@@ -62,8 +60,8 @@ fn call_routine(location: u16, pc: u16, state: State) -> State {
 
     State {
         pc: location,
-        stack_pointer: stack_pointer,
-        stack: stack,
+        stack_pointer,
+        stack,
         ..state
     }
 }
@@ -72,8 +70,8 @@ fn return_from_routine(state: State) -> State {
     let stack_pointer = state.stack_pointer-1;
     let pc = state.stack[stack_pointer as usize];
     State {
-        pc: pc,
-        stack_pointer: stack_pointer,
+        pc,
+        stack_pointer,
         ..state
     }
 }
@@ -88,8 +86,8 @@ fn subtract_y_from_x(state: State, pc: u16, vx: u8, vy: u8) -> State {
     registers[0xF] = if borrows { 0 } else { 1 };
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -104,8 +102,8 @@ fn subtract_x_from_y(state: State, pc: u16, vx: u8, vy: u8) -> State {
     registers[0xF] = if borrows  { 0 } else { 1 };
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -118,8 +116,8 @@ fn set_rnd(state: State, vx: u8, pc: u16, kk: u8) -> State {
     registers[vx as usize] = val;
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -156,8 +154,8 @@ fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, sc
     registers[0xF] = erased;
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         draw_flag: true,
         ..state
     }
@@ -168,32 +166,33 @@ fn handle_logical(state: State, pc: u16, vx: u8, vy: u8, logical: Logical) -> St
     let x = registers[vx as usize];
     let y = registers[vy as usize];
     registers[vx as usize] = match logical {
-        and => x & y,
-        or => x | y,
-        xor => x ^ y
+        Logical::AND => x & y,
+        Logical::OR => x | y,
+        Logical::XOR => x ^ y
     };
 
     State {
-        pc: pc,
-        registers:registers,
+        pc,
+        registers,
         ..state
     }
 }
 
 enum Logical {
-    and,
-    or, 
-    xor
+    AND,
+    OR, 
+    XOR
 }
 
 fn step_inner(state: State, memory: &mut Memory, keycode: Option<u8>, screen: &mut [u8], opcode: OpCode) -> State {
     let pc: u16 = state.pc+2;
-    let d = delay_timer(&state);
-    let s = sound_timer(&state);
+    // todo: Not currently passing these in
+    let _d = delay_timer(&state);
+    let _s = sound_timer(&state);
 
     match opcode {
         OpCode::Unknown(c) => panic!("Unknown opcode: {:04X}", c),
-        OpCode::CLS => State {clear_flag: true, pc: pc, ..state},
+        OpCode::CLS => State {clear_flag: true, pc, ..state},
         OpCode::CALL(nnn) => call_routine(nnn, pc, state),
         OpCode::RET => return_from_routine(state),
         OpCode::LD(ld) => handle_load_operands(state, ld, pc, memory, keycode),
@@ -204,9 +203,9 @@ fn step_inner(state: State, memory: &mut Memory, keycode: Option<u8>, screen: &m
         OpCode::SUBN(vx, vy) => subtract_x_from_y(state, pc, vx, vy),
         OpCode::RND(vx, kk) => set_rnd(state, vx, pc, kk),
         OpCode::DRW(vx, vy, n) => handle_draw(state, pc, vx, vy, n, memory, screen),
-        OpCode::OR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::or),
-        OpCode::AND(vx, vy) => handle_logical(state, pc, vx, vy, Logical::and),
-        OpCode::XOR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::xor),
+        OpCode::OR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::OR),
+        OpCode::AND(vx, vy) => handle_logical(state, pc, vx, vy, Logical::AND),
+        OpCode::XOR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::XOR),
         OpCode::SHIFT(so) => handle_shift_op(state, pc, so)
     }
 }

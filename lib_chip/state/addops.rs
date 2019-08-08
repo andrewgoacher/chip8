@@ -8,8 +8,8 @@ fn add_to_vx(state: State, vx: u8, kk: u8, pc: u16) -> State {
     registers[vx as usize] = val;
 
     State {
-        registers: registers,
-        pc: pc,
+        registers,
+        pc,
         ..state
     }
 }
@@ -25,8 +25,8 @@ fn add_vy_to_vx(state: State, vx: u8, vy: u8, pc: u16) -> State {
     registers[vx as usize] = result;
 
     State {
-        pc: pc,
-        registers: registers,
+        pc,
+        registers,
         ..state
     }
 }
@@ -36,8 +36,8 @@ fn add_vx_to_i(state: State, vx: u8, pc: u16) -> State {
     let i = state.i + u16::from(x);
 
     State {
-        pc: pc,
-        i: i,
+        pc,
+        i,
         ..state
     }
 }

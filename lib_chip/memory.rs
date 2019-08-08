@@ -2,6 +2,12 @@ pub struct Memory {
     data: [u8; 1024 * 4]
 }
 
+impl Default for Memory {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Memory {
     pub fn new() -> Memory {
         let mut memory = Memory { data: [0; 1024 * 4]};
@@ -21,9 +27,7 @@ impl Memory {
     }
 
     pub fn set_range(&mut self, from: usize, data: Vec<u8>) {
-        for i in 0 .. data.len() {
-            self.data[i+from] = data[i]; 
-        }
+        self.data[from..(data.len()+from)].clone_from_slice(&data[..])
     }
 
     pub fn set(&mut self, address: usize, data: u8) {
