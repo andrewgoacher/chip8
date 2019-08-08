@@ -1,5 +1,5 @@
 use super::State;
-use crate::opcode::ShiftOp;
+use crate::opcode::{ShiftOp, OpCode};
 
 fn handle_shift_left(state: State, pc: u16, vx: u8) -> State {
     let mut registers = state.registers;
@@ -9,6 +9,7 @@ fn handle_shift_left(state: State, pc: u16, vx: u8) -> State {
     registers[vx as usize] = x;
 
     State {
+        last_opcode: OpCode::SHIFT(ShiftOp::SHL(vx)),
         pc,
         registers,
         ..state
@@ -23,6 +24,7 @@ fn handle_shift_right(state: State, pc: u16, vx: u8) -> State {
     registers[vx as usize] = x;
 
     State {
+        last_opcode: OpCode::SHIFT(ShiftOp::SHR(vx)),
         pc,
         registers,
         ..state

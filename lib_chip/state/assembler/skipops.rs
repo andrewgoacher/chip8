@@ -1,5 +1,5 @@
 use super::State;
-use crate::opcode::SkipOp;
+use crate::opcode::{SkipOp, OpCode};
 
 fn handle_skip_if_equal(state: State, vx: u8, kk: u8, pc: u16) -> State {
     let x = state.registers[vx as usize];
@@ -9,6 +9,7 @@ fn handle_skip_if_equal(state: State, vx: u8, kk: u8, pc: u16) -> State {
     }
 
     State {
+        last_opcode: OpCode::SKIP(SkipOp::SE(vx, kk)),
         pc,
         ..state
     }
@@ -23,6 +24,7 @@ fn handle_skip_if_not_equal(state: State, vx: u8, kk: u8, pc: u16) -> State {
 
     State {
         pc,
+        last_opcode: OpCode::SKIP(SkipOp::SNE(vx, kk)),
         ..state
     }
 }
@@ -36,6 +38,7 @@ fn handle_skip_if_registers_equal(state: State, vx: u8, vy: u8, pc: u16) -> Stat
     }
 
     State {
+        last_opcode: OpCode::SKIP(SkipOp::SEXY(vx,vy)),
         pc,
         ..state
     }
@@ -50,6 +53,7 @@ fn handle_skip_if_registers_not_equal(state: State, vx: u8, vy: u8, pc: u16) -> 
     }
 
     State {
+        last_opcode: OpCode::SKIP(SkipOp::SNEXY(vx,vy)),
         pc,
         ..state
     }
@@ -68,6 +72,7 @@ fn handle_skip_on_keyboard(state: State, keycode: Option<u8>, vx: u8, pc: u16) -
     };
 
     State {
+        last_opcode: OpCode::SKIP(SkipOp::SKP(vx)),
         pc,
         ..state
     }
@@ -86,6 +91,7 @@ fn handle_skip_on_keyboard_up(state: State, keycode: Option<u8>, vx: u8, pc: u16
     };
 
     State {
+        last_opcode: OpCode::SKIP(SkipOp::SKNP(vx)),
         pc,
         ..state
     }
