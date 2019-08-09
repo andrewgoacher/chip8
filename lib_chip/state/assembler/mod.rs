@@ -97,6 +97,36 @@ fn set_rnd(state: State, vx: u8, pc: u16, kk: u8) -> State {
     }
 }
 
+
+/*
+unsigned short x = V[(opcode & 0x0F00) >> 8];
+  unsigned short y = V[(opcode & 0x00F0) >> 4];
+  unsigned short height = opcode & 0x000F;
+  unsigned short pixel;
+ 
+  V[0xF] = 0;
+  for (int yline = 0; yline < height; yline++)
+  {
+    pixel = memory[I + yline];
+    for(int xline = 0; xline < 8; xline++)
+    {
+      if((pixel & (0x80 >> xline)) != 0)
+      {
+        if(gfx[(x + xline + ((y + yline) * 64))] == 1)
+          V[0xF] = 1;                                 
+        gfx[x + xline + ((y + yline) * 64)] ^= 1;
+      }
+    }
+  }
+  */
+fn wrap(val: u8, max: u8) -> u8 {
+    if val > max {
+        val % max
+    } else {
+        val
+    }
+}
+
 fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, screen: &mut [u8]) -> State {
     let mut erased = 0;
     let row = state.registers[vx as usize];
@@ -104,26 +134,20 @@ fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, sc
     let width = state.width;
     let height = state.height;
 
-    for byte_index in 0..n {
-        let byte = memory.read(state.i + u16::from(byte_index));
-        
-        for bit_index in 0..8 {
-            let shift_left = byte << bit_index;
-            let bit = shift_left >> (7 - bit_index);
-            // let bit: u8 = (byte >> bit_index) & 0x1;
+    for yline in 0..n {
+        let sprite = memory.read(state.i + u16::from(yline));
+        for xline in 0..8{
+            if (sprite & (0x80 >> xline)) != 0 {
+                let x = wrap(row + xline, width as u8) as u32;
+                let y = wrap(yline  + col, height as u8) as u32;
+                let idx = ((y*width) + x) as usize;
+                let current_pixel = screen[idx];
+                if current_pixel == 1 {
+                    erased = 1;
+                }
 
-            let curr_y = u32::from(col + byte_index) % height;
-            let curr_x = u32::from(row + (7-bit)) % width;
-            let curr_idx = ((curr_y*width) + curr_x) as usize;
-            let curr_pixel = screen[curr_idx];
-
-
-            if bit == 1 && curr_pixel == 1 {
-                erased = 1;
+                screen[idx] ^=1;
             }
-
-            let pixel = curr_pixel ^ bit;
-            screen[curr_idx] = pixel;
         }
     }
 
