@@ -38,7 +38,7 @@ fn get_opcode(state: &State, memory: &Memory) -> OpCode {
     parse_opcode(high, low)
 }
 
-fn delay_timer(state: &State) -> u8 {
+pub fn delay_timer(state: &State) -> u8 {
     if state.delay_timer > 0 {
         state.delay_timer -1
     } else {
@@ -46,7 +46,7 @@ fn delay_timer(state: &State) -> u8 {
     }
 }
 
-fn sound_timer(state: &State) -> u8 {
+pub fn sound_timer(state: &State) -> u8 {
     if state.sound_timer > 0 {
         state.sound_timer-1
     } else {
@@ -81,15 +81,6 @@ impl State {
             Some(code) => code
         };
 
-        let d = delay_timer(&self);
-        let s = sound_timer(&self);
-
-        let state = State {
-            delay_timer: d,
-            sound_timer: s,
-            ..self
-        };
-
-        assemble(state, memory, keycode, &mut screen[..], opcode)
+        assemble(self, memory, keycode, &mut screen[..], opcode)
     }
 }

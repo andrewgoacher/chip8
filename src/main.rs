@@ -2,7 +2,7 @@ extern crate lib_chip;
 extern crate sdl2;
 
 use lib_chip::{
-    state::State,
+    state::{State,sound_timer, delay_timer},
     rom::Rom,
     memory::Memory,
     keyboard::get_key_mapped
@@ -13,6 +13,8 @@ use sdl2::rect::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::render::Texture;
+
+use std::time::SystemTime;
 
 fn draw(texture: &mut Texture, screen: &[u8], width: u32, height: u32, scale: u32) -> Result<(), String> {
     texture.with_lock(None, |buffer: &mut [u8], _pitch: usize| {
@@ -77,8 +79,20 @@ pub fn main() -> Result<(), String> {
 
     let mut event_pump = sdl_context.event_pump()?;
 
+    let cpu_hz_ms = 10000u128;
+    let timer_hz_ms = 16667u128;
+
+    let mut cpu_elapsed_ms = 0u128;
+    let mut timer_elapsed_ms = 0u128;
+    let mut last_elapsed_ms = 0u128;
+    let now = SystemTime::now();
+
     'running: loop {
         let mut key: Option<Keycode> = None;
+        let elapsed = now.elapsed().expect("Elapsed time missing");
+        let elapsed_ms = elapsed.as_nanos();
+        let actual_elapsed = elapsed_ms - last_elapsed_ms;
+        last_elapsed_ms = elapsed_ms;
 
         for event in event_pump.poll_iter() {
             match event {
@@ -91,23 +105,45 @@ pub fn main() -> Result<(), String> {
             }
         }
 
-        // The rest of the game loop goes here...
-        // print_state(&state);
-        // println!("\n\n");
-        state = state.step(&mut memory, get_key_mapped(key), &mut screen);
+        cpu_elapsed_ms += actual_elapsed;
+        timer_elapsed_ms += actual_elapsed;
 
-        if state.clear_flag {
-            screen =  vec![0x00; (EMU_WIDTH * EMU_HEIGHT) as usize];
+        let mut delay = state.delay_timer;
+        let mut sound = state.sound_timer;
+
+        if timer_elapsed_ms >= timer_hz_ms {
+            timer_elapsed_ms = 0u128;
+            delay = delay_timer(&state);
+            sound = sound_timer(&state);
         }
-        if state.draw_flag {
-            canvas.clear();
-            draw(&mut texture, &screen, EMU_WIDTH, EMU_HEIGHT, SCALE)?;
-            canvas.copy(&texture, None, Some(Rect::new(0, 0, EMU_WIDTH * SCALE, EMU_HEIGHT * SCALE)))?;
-        }
-        if state.clear_flag || state.draw_flag {
-            state.draw_flag = false;
-            state.clear_flag = false;
-            canvas.present(); 
+
+        if cpu_elapsed_ms >= cpu_hz_ms {
+            cpu_elapsed_ms = 0u128;
+
+            state = State {
+                delay_timer: delay,
+                sound_timer: sound,
+                ..state
+            };
+
+            // The rest of the game loop goes here...
+            // print_state(&state);
+            // println!("\n\n");
+            state = state.step(&mut memory, get_key_mapped(key), &mut screen);
+
+            if state.clear_flag {
+                screen =  vec![0x00; (EMU_WIDTH * EMU_HEIGHT) as usize];
+            }
+            if state.draw_flag {
+                canvas.clear();
+                draw(&mut texture, &screen, EMU_WIDTH, EMU_HEIGHT, SCALE)?;
+                canvas.copy(&texture, None, Some(Rect::new(0, 0, EMU_WIDTH * SCALE, EMU_HEIGHT * SCALE)))?;
+            }
+            if state.clear_flag || state.draw_flag {
+                state.draw_flag = false;
+                state.clear_flag = false;
+                canvas.present(); 
+            }
         }
     }
 
