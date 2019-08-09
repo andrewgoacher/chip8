@@ -99,12 +99,13 @@ fn set_rnd(state: State, vx: u8, pc: u16, kk: u8) -> State {
 
 fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, screen: &mut [u8]) -> State {
     let mut erased = 0;
-    let row = vx;
-    let col = vy;
+    let row = state.registers[vx as usize];
+    let col = state.registers[vy as usize];
     let width = state.width;
     let height = state.height;
 
-    for byte_index in 0 .. n {
+    println!("Draw {} byte sprite starting at {},{}", n, vx, vy);
+    for byte_index in 0..n {
         let byte = memory.read(state.i + u16::from(byte_index));
         
         for bit_index in 0 .. 8 {
