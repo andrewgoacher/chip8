@@ -109,3 +109,238 @@ pub fn handle_skip_ops(state: State, op: SkipOp, pc: u16, keycode: Option<u8>) -
         SkipOp::SKNP(vx) => handle_skip_on_keyboard_up(state, keycode, vx, pc)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::*;
+    use super::*;
+    use crate::opcode::{SkipOp};
+
+    #[test]
+    fn it_should_not_skip_if_kk_not_equal() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xD;
+        registers[VX as usize] = 0x3;
+        const KK:u8 = 5u8;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SE(VX, KK), 0x200, None);
+
+        assert_eq!(0x200, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_skip_if_kk_is_equal() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xD;
+        registers[VX as usize] = 0x3;
+
+        const KK:u8 = 0x3;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SE(VX, KK), 0x200, None);
+
+        assert_eq!(0x202, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_not_skip_if_kk_equal() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xD;
+        registers[VX as usize] = 0x3;
+        const KK:u8 = 0x3;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SNE(VX, KK), 0x200, None);
+
+        assert_eq!(0x200, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_skip_if_kk_is_not_equal() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xD;
+        registers[VX as usize] = 0x3;
+
+        const KK:u8 = 0x4;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SNE(VX, KK), 0x200, None);
+
+        assert_eq!(0x202, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_skip_if_vx_and_vy_are_equal() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x4;
+        const DATA:u8 = 0x5;
+
+        registers[VX as usize] = DATA;
+        registers[VY as usize] = DATA;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SEXY(VX, VY), 0x200, None);
+
+        assert_eq!(0x202, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_not_skip_if_vx_and_vy_are_not_equal() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x4;
+
+        registers[VX as usize] = 0x1;
+        registers[VY as usize] = 0x2;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SEXY(VX, VY), 0x200, None);
+
+        assert_eq!(0x200, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_skip_if_vx_and_vy_are_not_equal() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x4;
+
+        registers[VX as usize] = 0x1;
+        registers[VY as usize] = 0x2;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SNEXY(VX, VY), 0x200, None);
+
+        assert_eq!(0x202, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_not_skip_if_vx_and_vy_are_equal() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x4;
+        const DATA:u8 = 0x5;
+
+        registers[VX as usize] = DATA;
+        registers[VY as usize] = DATA;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_skip_ops(state, SkipOp::SNEXY(VX, VY), 0x200, None);
+
+        assert_eq!(0x200, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_skip_if_key_pressed() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const DATA:u8 = 0x5;
+
+        registers[VX as usize] = DATA;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let key = Some(5u8);
+
+        let new_state = handle_skip_ops(state, SkipOp::SKP(VX), 0x200, key);
+
+        assert_eq!(0x202, new_state.pc);   
+    }
+
+    #[test]
+    fn it_should_not_skip_if_key_not_pressed() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const DATA:u8 = 0x5;
+
+        registers[VX as usize] = DATA;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let key = Some(6u8);
+
+        let new_state = handle_skip_ops(state, SkipOp::SKP(VX), 0x200, key);
+
+        assert_eq!(0x200, new_state.pc);  
+    }
+
+    #[test]
+    fn it_should_skip_if_key_not_pressed() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const DATA:u8 = 0x5;
+
+        registers[VX as usize] = DATA;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let key = Some(6u8);
+
+        let new_state = handle_skip_ops(state, SkipOp::SKNP(VX), 0x200, key);
+
+        assert_eq!(0x202, new_state.pc);  
+    }
+
+    #[test]
+    fn it_should_not_skip_if_key_is_pressed() {
+        let mut registers = [0x0; 16];
+        const VX:u8 = 0xD;
+        const DATA:u8 = 0x5;
+
+        registers[VX as usize] = DATA;
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let key = Some(5u8);
+
+        let new_state = handle_skip_ops(state, SkipOp::SKNP(VX), 0x200, key);
+
+        assert_eq!(0x200, new_state.pc);     
+    }
+}
