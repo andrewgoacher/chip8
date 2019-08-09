@@ -16,3 +16,33 @@ pub fn handle_jump_ops(state: State, op: JumpOp) -> State {
         JumpOp::JPV0(nnn) => handle_jump_from_v0(state, nnn)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::State;
+    use super::*;
+    use crate::opcode::JumpOp;
+
+    #[test]
+    fn it_should_jump_to_stated_location() {
+        let state: State = Default::default();
+
+        let new_state = handle_jump_ops(state, JumpOp::JP(0x0FFF));
+
+        assert_eq!(0x0FFF, new_state.pc);
+    }
+
+    #[test]
+    fn it_should_jump_to_stated_offset_from_v0() {
+        let mut registers = [0x0;16];
+        registers[0x0] = 0x11;
+        let state = State {
+            registers: registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_jump_ops(state, JumpOp::JPV0(0x0FFF));
+
+        assert_eq!(0x1010, new_state.pc);
+    }
+}
