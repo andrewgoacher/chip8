@@ -53,9 +53,9 @@ fn subtract_y_from_x(state: State, pc: u16, vx: u8, vy: u8) -> State {
     let x = registers[vx as usize];
     let y = registers[vy as usize];
 
-    let (result, borrows) = x.overflowing_sub(y);
+    let (result, _overflows) = x.overflowing_sub(y);
     registers[vx as usize] = result;
-    registers[0xF] = if borrows { 0 } else { 1 };
+    registers[0xF] = if x > y { 1 } else { 0 };
 
     State {
         registers,
@@ -70,9 +70,9 @@ fn subtract_x_from_y(state: State, pc: u16, vx: u8, vy: u8) -> State {
     let x = registers[vx as usize];
     let y = registers[vy as usize];
 
-    let (result, borrows) = y.overflowing_sub(x);
+    let (result, _overflows) = y.overflowing_sub(x);
     registers[vx as usize] = result;
-    registers[0xF] = if borrows  { 0 } else { 1 };
+    registers[0xF] = if y > x  { 1 } else { 0 };
 
     State {
         registers,
@@ -177,5 +177,243 @@ pub fn assemble(state: State, memory: &mut Memory, keycode: Option<u8>, screen: 
         OpCode::AND(vx, vy) => handle_logical(state, pc, vx, vy, Logical::AND),
         OpCode::XOR(vx, vy) => handle_logical(state, pc, vx, vy, Logical::XOR),
         OpCode::SHIFT(so) => handle_shift_op(state, pc, so)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::opcode::OpCode;
+    use crate::memory::Memory;
+
+    #[test]
+    fn it_sets_the_clear_flag() {
+        let state:State = Default::default();
+        let mut screen = [0x0;200];
+        let mut memory = Memory::new();
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::CLS);
+        assert!(new_state.clear_flag);
+    }
+
+    #[test]
+    fn it_calls_the_new_routine() {
+        let state:State = State { pc: 0x200, ..Default::default() };
+        let mut screen = [0x0;200];
+        let mut memory = Memory::new();
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::CALL(0x0123));
+        
+        assert_eq!(0x0123, new_state.pc);
+
+        let stack = new_state.stack;
+        let addr = stack[(new_state.stack_pointer-1) as usize];
+        assert_eq!(0x202, addr);
+    }
+
+    #[test]
+    fn it_returns_from_routine() {
+        let mut stack = [0x0000; 16];
+        stack[0] = 0xF334;
+        let stack_pointer = 1;
+        let state = State {
+            pc: 0x200,
+            stack,
+            stack_pointer,
+            ..Default::default()
+        };
+
+        let mut screen = [0x0;200];
+        let mut memory = Memory::new();
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::RET);
+
+        assert_eq!(0xF334, new_state.pc);
+        assert_eq!(0, new_state.stack_pointer);
+    }
+
+    #[test]
+    fn it_will_subtract_vy_from_vx() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xC;
+        const VY:u8 = 0xD;
+        registers[VX as usize] = 0xFF;
+        registers[VY as usize] = 0xF0;
+
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUB(VX, VY));
+
+        let registers = new_state.registers;
+        assert_eq!(0x0F, registers[VX as usize]);
+
+        assert_eq!(0x01, registers[0xF]);
+    }
+
+    #[test]
+    fn it_will_subtract_vy_from_vx_and_borrow() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xC;
+        const VY:u8 = 0xD;
+        registers[VX as usize] = 0xF0;
+        registers[VY as usize] = 0xFF;
+
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUB(VX, VY));
+
+        let registers = new_state.registers;
+        assert_eq!(0xF1, registers[VX as usize]);
+
+        assert_eq!(0x0, registers[0xF]);
+    }
+
+    #[test]
+    fn it_will_subtract_vx_from_vy() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xC;
+        const VY:u8 = 0xD;
+
+        registers[VX as usize] = 0xF0;
+        registers[VY as usize] = 0xFF;
+
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUBN(VX, VY));
+
+        let registers = new_state.registers;
+
+        assert_eq!(0x0F, registers[VX as usize]);
+        assert_eq!(0x1, registers[0xF]);
+    }
+
+    #[test]
+    fn it_will_subtract_vx_from_vy_with_no_borrow() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xC;
+        const VY:u8 = 0xD;
+
+        registers[VX as usize] = 0xFF;
+        registers[VY as usize] = 0xF0;
+
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUBN(VX, VY));
+
+        let registers = new_state.registers;
+
+        assert_eq!(0xF1, registers[VX as usize]);
+        assert_eq!(0x0, registers[0xF]);  
+    }
+
+    #[test]
+    #[ignore]
+    fn it_will_set_random_number() {
+        // note: This is a relatively fragile test because 
+        // can't inject random (yet)
+
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+        let state:State = Default::default();
+
+        const VX:u8 = 0xD;
+        const KK:u8 = 0x12;
+
+        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::RND(VX, KK));
+        let registers = new_state.registers;
+        assert_ne!(0x0, registers[VX as usize]);
+    }
+
+    #[test]
+    fn it_will_or_vx_and_vy(){
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x2;
+        let mut registers = [0x0;16];
+        registers[VX as usize] = 0xF0;
+        registers[VY as usize] = 0x0F;
+
+
+        let state = State { 
+            registers,
+            ..Default::default() 
+        };
+
+        let new_state = assemble(state, &mut memory, None,
+         &mut screen[..], OpCode::OR(VX, VY));
+        
+        let registers = new_state.registers;
+        assert_eq!(0xFF, registers[VX as usize]);
+    }
+
+    #[test]
+    fn it_will_and_vx_and_vy(){
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x2;
+        let mut registers = [0x0;16];
+        registers[VX as usize] = 0xFF;
+        registers[VY as usize] = 0x00;
+
+
+        let state = State { 
+            registers,
+            ..Default::default() 
+        };
+
+        let new_state = assemble(state, &mut memory, None,
+         &mut screen[..], OpCode::AND(VX, VY));
+        
+        let registers = new_state.registers;
+        assert_eq!(0x00, registers[VX as usize]);
+    }
+
+    #[test]
+    fn it_will_exclusive_or_vx_and_vy(){
+        let mut memory = Memory::new();
+        let mut screen = [0x0;200];
+        const VX:u8 = 0xD;
+        const VY:u8 = 0x2;
+        let mut registers = [0x0;16];
+        registers[VX as usize] = 0b01010011;
+        registers[VY as usize] = 0b00100100;
+
+
+        let state = State { 
+            registers,
+            ..Default::default() 
+        };
+
+        let new_state = assemble(state, &mut memory, None,
+         &mut screen[..], OpCode::XOR(VX, VY));
+        
+        let registers = new_state.registers;
+        assert_eq!(0b01110111, registers[VX as usize]);
     }
 }
