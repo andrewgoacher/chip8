@@ -72,7 +72,7 @@ mod tests {
         };
 
 
-        let new_state = add_to_vx(state, VX, 0xA1, 0x200);
+        let new_state = handle_add_op(state, AddOp::ADD(VX, 0xA1), 0x200);
         let registers = new_state.registers;
 
         assert_eq!(registers[VX as usize], 0xB1);
@@ -89,8 +89,7 @@ mod tests {
             ..Default::default()
         };
 
-
-        let new_state = add_to_vx(state, VX, 0xFF, 0x200);
+        let new_state = handle_add_op(state, AddOp::ADD(VX, 0xFF), 0x200);
         let registers = new_state.registers;
 
         assert_eq!(registers[VX as usize], 0x0F);   
@@ -109,8 +108,7 @@ mod tests {
             ..Default::default()
         };
 
-
-        let new_state = add_vy_to_vx(state, VX, VY, 0x200);
+        let new_state = handle_add_op(state, AddOp::ADDREG(VX,VY), 0x200);
         let registers = new_state.registers;
 
         assert_eq!(registers[VX as usize], 0x25);  
@@ -131,7 +129,7 @@ mod tests {
         };
 
 
-        let new_state = add_vy_to_vx(state, VX, VY, 0x200);
+        let new_state = handle_add_op(state, AddOp::ADDREG(VX, VY), 0x200);
         let registers = new_state.registers;
 
         assert_eq!(registers[VX as usize], 0x0F);  
@@ -150,7 +148,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = add_vx_to_i(state, VX, 0x200);
+        let new_state = handle_add_op(state, AddOp::ADDI(VX), 0x200);
         assert_eq!(0x25, new_state.i)
     }
 }
