@@ -1,3 +1,5 @@
+//! Contains the formatting logic to be able to print the opcodes to console.
+
 use std::fmt::{self, Formatter, Display};
 use super::{AddOp, OpCode, ShiftOp, SkipOp, LoadOp, JumpOp};
 
