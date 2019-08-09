@@ -25,6 +25,12 @@ pub struct State {
     pub height: u32
 }
 
+impl Default for State {
+    fn default() -> Self {
+        State::new(64, 32)
+    }
+}
+
 fn get_opcode(state: &State, memory: &Memory) -> OpCode {
     let pc = state.pc;
     let high = memory.read(pc);

@@ -1,6 +1,7 @@
 use super::State;
 use crate::opcode::{AddOp, OpCode};
 
+/// Adds kk to register V[x]
 fn add_to_vx(state: State, vx: u8, kk: u8, pc: u16) -> State {
     let mut registers = state.registers;
     let x = registers[vx as usize];
@@ -45,10 +46,111 @@ fn add_vx_to_i(state: State, vx: u8, pc: u16) -> State {
     }
 }
 
+/// Handles all operands that fall under the ADD category.
 pub fn handle_add_op(state: State, op: AddOp, pc: u16) -> State {
     match op {
         AddOp::ADD(vx, kk) => add_to_vx(state, vx, kk, pc),
         AddOp::ADDREG(vx, vy) => add_vy_to_vx(state, vx, vy, pc),
         AddOp::ADDI(vx) => add_vx_to_i(state, vx, pc)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::State;
+    use super::*;
+
+    #[test]
+    fn it_should_add_kk_to_register_vx() {
+        const VX:u8 = 0x3;
+        let mut registers = [0x0; 16];
+        registers[VX as usize] = 0x10;
+
+        let state: State = State {
+            registers: registers,
+            ..Default::default()
+        };
+
+
+        let new_state = add_to_vx(state, VX, 0xA1, 0x200);
+        let registers = new_state.registers;
+
+        assert_eq!(registers[VX as usize], 0xB1);
+    }
+
+    #[test]
+    fn it_should_add_kk_to_register_vx_with_overflow() {
+        const VX:u8 = 0x3;
+        let mut registers = [0x0; 16];
+        registers[VX as usize] = 0x10;
+
+        let state: State = State {
+            registers: registers,
+            ..Default::default()
+        };
+
+
+        let new_state = add_to_vx(state, VX, 0xFF, 0x200);
+        let registers = new_state.registers;
+
+        assert_eq!(registers[VX as usize], 0x0F);   
+    }
+
+    #[test]
+    fn it_should_add_vy_to_vx() {
+        const VX:u8 = 0x3;
+        const VY:u8 = 0x4;
+        let mut registers = [0x0; 16];
+        registers[VX as usize] = 0x10;
+        registers[VY as usize] = 0x15;
+
+        let state: State = State {
+            registers: registers,
+            ..Default::default()
+        };
+
+
+        let new_state = add_vy_to_vx(state, VX, VY, 0x200);
+        let registers = new_state.registers;
+
+        assert_eq!(registers[VX as usize], 0x25);  
+        assert_eq!(registers[0xF], 0x00);
+    }
+
+    #[test]
+    fn it_should_add_vy_to_vx_with_overflow() {
+        const VX:u8 = 0x3;
+        const VY:u8 = 0x4;
+        let mut registers = [0x0; 16];
+        registers[VX as usize] = 0x10;
+        registers[VY as usize] = 0xFF;
+
+        let state: State = State {
+            registers: registers,
+            ..Default::default()
+        };
+
+
+        let new_state = add_vy_to_vx(state, VX, VY, 0x200);
+        let registers = new_state.registers;
+
+        assert_eq!(registers[VX as usize], 0x0F);  
+        assert_eq!(registers[0xF], 0x01);
+    }
+
+    #[test]
+    fn it_should_add_vx_to_i() {
+        const VX:u8 = 0x3;
+        let mut registers = [0x0;16];
+        registers[VX as usize] = 0x10;
+
+        let state: State = State {
+            registers: registers,
+            i: 0x15,
+            ..Default::default()
+        };
+
+        let new_state = add_vx_to_i(state, VX, 0x200);
+        assert_eq!(0x25, new_state.i)
     }
 }
