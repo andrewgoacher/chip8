@@ -104,15 +104,16 @@ fn handle_draw(state: State, pc: u16, vx: u8, vy: u8, n: u8, memory: &Memory, sc
     let width = state.width;
     let height = state.height;
 
-    println!("Draw {} byte sprite starting at {},{}", n, vx, vy);
     for byte_index in 0..n {
         let byte = memory.read(state.i + u16::from(byte_index));
         
-        for bit_index in 0 .. 8 {
-            let bit: u8 = (byte >> bit_index) & 0x1;
+        for bit_index in 0..8 {
+            let shift_left = byte << bit_index;
+            let bit = shift_left >> (7 - bit_index);
+            // let bit: u8 = (byte >> bit_index) & 0x1;
 
-            let curr_x = u32::from(row + byte_index) % width;
-            let curr_y = u32::from(col + (7-bit)) % height;
+            let curr_y = u32::from(col + byte_index) % height;
+            let curr_x = u32::from(row + (7-bit)) % width;
             let curr_idx = ((curr_y*width) + curr_x) as usize;
             let curr_pixel = screen[curr_idx];
 

@@ -62,7 +62,7 @@ pub fn main() -> Result<(), String> {
     let sdl_context = sdl2::init()?;
     let video_subsystem = sdl_context.video()?;
 
-    let window = video_subsystem.window("rust-sdl2 demo: Video", EMU_WIDTH * SCALE, EMU_HEIGHT * SCALE)
+    let window = video_subsystem.window("Chip8", EMU_WIDTH * SCALE, EMU_HEIGHT * SCALE)
         .position_centered()
         .opengl()
         .build()
@@ -92,8 +92,8 @@ pub fn main() -> Result<(), String> {
         }
 
         // The rest of the game loop goes here...
-        print_state(&state);
-        println!("\n\n");
+        // print_state(&state);
+        // println!("\n\n");
         state = state.step(&mut memory, get_key_mapped(key), &mut screen);
 
         if state.clear_flag {
