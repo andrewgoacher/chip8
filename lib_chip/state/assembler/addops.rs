@@ -67,7 +67,7 @@ mod tests {
         registers[VX as usize] = 0x10;
 
         let state: State = State {
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
@@ -85,7 +85,7 @@ mod tests {
         registers[VX as usize] = 0x10;
 
         let state: State = State {
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
@@ -104,7 +104,7 @@ mod tests {
         registers[VY as usize] = 0x15;
 
         let state: State = State {
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
@@ -124,7 +124,7 @@ mod tests {
         registers[VY as usize] = 0xFF;
 
         let state: State = State {
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
@@ -143,7 +143,7 @@ mod tests {
         registers[VX as usize] = 0x10;
 
         let state: State = State {
-            registers: registers,
+            registers,
             i: 0x15,
             ..Default::default()
         };

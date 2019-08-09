@@ -22,9 +22,7 @@ impl Rom {
 
     /// Loads a rom from memory into a buffer
     pub fn from_memory(data: Vec<u8>) -> Rom {
-        Rom {
-            data: data
-        }
+        Rom { data }
     }
 
     /// Returns the contents of the rom as an array slice.

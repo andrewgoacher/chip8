@@ -37,7 +37,7 @@ mod tests {
         let mut registers = [0x0;16];
         registers[0x0] = 0x11;
         let state = State {
-            registers: registers,
+            registers,
             ..Default::default()
         };
 

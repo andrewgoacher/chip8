@@ -219,7 +219,7 @@ mod tests {
 
         let state = State {
             i: I,
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
@@ -242,7 +242,7 @@ mod tests {
 
         let state = State {
             i: I,
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
@@ -267,7 +267,7 @@ mod tests {
 
         let state = State {
             i:I,
-            registers: registers,
+            registers,
             ..Default::default()
         };
 
