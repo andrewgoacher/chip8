@@ -209,4 +209,230 @@ mod tests {
         let actual = parse_opcode(HIGH, LOW);
         assert_eq!(OpCode::ADD(AddOp::ADD(0x03, 0x22)), actual);
     }
+
+    #[test]
+    fn it_will_return_load_vy_into_vx() {
+        const HIGH:u8 = 0x84;
+        const LOW:u8 = 0x50;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDXY(0x04, 0x05)), actual);
+    }
+
+    #[test]
+    fn it_will_return_a_logical_or() {
+        const HIGH:u8 = 0x83;
+        const LOW:u8 = 0x31;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::OR(0x03, 0x03), actual);
+    }
+
+    #[test]
+    fn it_will_return_a_logical_and() {
+        const HIGH:u8 = 0x85;
+        const LOW:u8 = 0x42;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::AND(0x05, 0x04),actual);
+    }
+
+    #[test]
+    fn it_will_return_logical_xor() {
+        const HIGH:u8 = 0x86;
+        const LOW:u8 = 0x53;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::XOR(0x06, 0x05), actual);
+    }
+
+    #[test]
+    fn it_will_return_add_vy_to_vx() {
+        const HIGH:u8 = 0x84;
+        const LOW:u8 = 0x54;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::ADD(AddOp::ADDREG(0x04,0x05)), actual);
+    }
+
+    #[test]
+    fn it_will_return_subtract_y_from_x() {
+        const HIGH:u8 = 0x89;
+        const LOW:u8 = 0xE5;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SUB(0x09, 0x0E), actual);
+    }
+
+    #[test]
+    fn it_will_shift_right() {
+        const HIGH:u8 = 0x85;
+        const LOW:u8 = 0x46;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SHIFT(ShiftOp::SHR(0x05)), actual);
+    }
+
+    #[test]
+    fn it_will_subtract_x_from_y() {
+        const HIGH:u8 = 0x85;
+        const LOW:u8 = 0x37;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SUBN(0x05, 0x03), actual);
+    }
+
+    #[test]
+    fn it_will_shift_left() {
+        const HIGH:u8 = 0x87;
+        const LOW:u8 = 0xCE;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SHIFT(ShiftOp::SHL(0x07)), actual);
+    }
+
+    #[test]
+    fn it_will_return_skip_if_vx_not_equal_vy() {
+        const HIGH:u8 = 0x94;
+        const LOW:u8 = 0xE0;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SKIP(SkipOp::SNEXY(0x04, 0x0E)), actual);
+    }
+
+    #[test]
+    fn it_will_return_load_into_i() {
+        const HIGH:u8 = 0xA4;
+        const LOW:u8 = 0xEF;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDI(0x04EF)), actual);
+    }
+
+    #[test]
+    fn it_will_jump_to_v0_offset() {
+        const HIGH:u8 = 0xBF;
+        const LOW:u8 = 0x32;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::JP(JumpOp::JPV0(0x0F32)), actual);
+    }
+
+    #[test]
+    fn it_will_return_random() {
+        const HIGH:u8 = 0xCD;
+        const LOW:u8 = 0x65;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::RND(0x0D, 0x65), actual);
+    }
+
+    #[test]
+    fn it_will_draw() {
+        const HIGH:u8 = 0xD4;
+        const LOW:u8 = 0xE3;
+
+        let actual = parse_opcode(HIGH, LOW);
+
+        assert_eq!(OpCode::DRW(0x04, 0x0E, 0x03), actual);
+    }
+
+    #[test]
+    fn it_will_skip_if_x() {
+        const HIGH:u8 = 0xE5;
+        const LOW:u8 = 0x9E;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SKIP(SkipOp::SKP(0x05)), actual);
+    }
+
+    #[test]
+    fn it_will_not_skip_if_x() {
+        const HIGH:u8 = 0xE5;
+        const LOW:u8 = 0xA1;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::SKIP(SkipOp::SKNP(0x05)), actual);
+    }
+
+    #[test]
+    fn it_will_load_vx_into_display_timer() {
+        const HIGH:u8 = 0xF4;
+        const LOW:u8 = 0x07;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDVXDT(0x04)), actual);
+    }
+
+    #[test]
+    fn it_will_load_key_press_into_vx() {
+        const HIGH:u8 = 0xF5;
+        const LOW:u8 = 0x0A;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDKEY(0x05)), actual);
+    }
+
+    #[test]
+    fn it_will_load_dt_into_vx() {
+        const HIGH:u8 = 0xF3;
+        const LOW:u8 = 0x15;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDDTVX(0x03)), actual);
+    }
+
+    #[test]
+    fn it_will_load_vx_into_st() {
+        const HIGH:u8 = 0xF3;
+        const LOW:u8 = 0x18;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDSTVX(0x03)), actual);
+    }
+
+    #[test]
+    fn it_will_add_to_i() {
+        const HIGH:u8 = 0xF2;
+        const LOW:u8 = 0x1E;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::ADD(AddOp::ADDI(0x02)), actual);
+    }
+
+    #[test]
+    fn it_should_load_sprite_into_i() {
+        const HIGH:u8 = 0xF2;
+        const LOW:u8 = 0x29;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDF(0x02)), actual);
+    }
+
+    #[test]
+    fn it_should_return_bcd_representation() {
+        const HIGH:u8 = 0xFD;
+        const LOW:u8 = 0x33;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDB(0x0D)), actual);
+    }
+
+    #[test]
+    fn it_will_load_i_from_v0() {
+        const HIGH:u8 = 0xF1;
+        const LOW:u8 = 0x55;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDIV0X(0x01)), actual);
+    }
+
+    #[test]
+    fn it_will_read_i_from_v0() {
+        const HIGH:u8 = 0xFC;
+        const LOW:u8 = 0x65;
+
+        let actual = parse_opcode(HIGH, LOW);
+        assert_eq!(OpCode::LD(LoadOp::LDV0XI(0x0C)), actual);
+    }
 }
