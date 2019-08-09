@@ -166,3 +166,205 @@ pub fn handle_load_operands(state: State, load_op: LoadOp, pc: u16, memory: &mut
         LoadOp::LDXY(vx, vy) => load_x_from_y(state, vx, vy, pc)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::super::*;
+    use super::*;
+    use crate::opcode::{OpCode, LoadOp};
+    use crate::memory::Memory;
+
+    #[test]
+    fn it_should_load_value_into_vx() {
+        let state:State = Default::default();
+        let mut memory = Memory::new();
+        const VX:u8 = 0x4;
+        const KK:u8 = 0xFF;
+
+        let new_state = handle_load_operands(state, LoadOp::LD(VX,KK), 0x299, &mut memory, None);
+        let actual = new_state.registers[VX as usize];
+
+        assert_eq!(KK, actual);
+    }
+
+    #[test]
+    fn it_should_load_memory_into_specified_number_of_registers() {
+        const I:u16 = 0x200;
+        let mut memory = Memory::new();
+        let mem = &vec![0x1,0x2,0x3,0x4][..];
+        memory.set_range(I as usize, mem);
+        const VX:u8 = 0x03;
+
+        let state = State {
+            i: I,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDV0XI(VX), 0x299, &mut memory, None);
+        let registers = new_state.registers;
+        let slice = &registers[..4];
+        assert_eq!(mem, slice);
+    }
+
+    #[test]
+    fn it_should_read_specified_registers_into_memory() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0x5;
+        registers[0x0] = 0x1;
+        registers[0x3] = 0x6;
+        registers[0x5] = 0xF;
+
+        let mut memory = Memory::new();
+        const I:u16=0x200;
+
+        let state = State {
+            i: I,
+            registers: registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDIV0X(VX), 0x200, &mut memory, None);
+        let registers = new_state.registers;
+        let reg_slice = &registers[0..5];
+        let mem = [memory.read(I), memory.read(I+1), memory.read(I+2),
+        memory.read(I+3), memory.read(I+4)];
+
+        assert_eq!(reg_slice, &mem[..]);
+    }
+
+    #[test]
+    fn it_shuold_read_bcd_representation_into_memory() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0x6;
+        registers[VX as usize] = 0xFE;
+        let mut memory = Memory::new();
+        const I:u16 = 0x200;
+
+        let state = State {
+            i: I,
+            registers: registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDB(VX), 0x200, &mut memory, None);
+
+        let i = new_state.i;
+        let (h,t,u) = (memory.read(i), memory.read(i+1), memory.read(i+2));
+
+        assert_eq!(200, h);
+        assert_eq!(50, t);
+        assert_eq!(4, u);
+    }
+
+    #[test]
+    fn it_should_load_sprite_into_memory() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xE;
+        const DATA:u8 = 0xD;
+        registers[VX as usize] = DATA;
+        const I:u16 = 0x202;
+        let mut memory = Memory::new();
+
+        let state = State {
+            i:I,
+            registers: registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDF(VX), 0x200, &mut memory, None);
+
+        assert_eq!(u16::from(DATA) * 5, new_state.i);
+    }
+
+    #[test]
+    fn it_should_set_the_sound_timer() {
+        let mut registers = [0x0;16];
+        const VX:u8 = 0xD;
+        registers[VX as usize] = 0x12;
+
+        let mut memory = Memory::new();
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDSTVX(VX), 0x200, &mut memory, None);
+        assert_eq!(0x12, new_state.sound_timer);
+    }
+
+    #[test]
+    fn when_key_not_pressed_should_not_progress_pc() {
+        let registers = [0x0;16];
+        const VX:u8 = 0x01;
+
+        let mut memory = Memory::new();
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDKEY(VX), 0x202, &mut memory, None);
+
+        assert_eq!(0x200, new_state.pc);
+        assert_eq!(Some(OpCode::LD(LoadOp::LDKEY(VX))), new_state.opcode);
+    }
+
+    #[test]
+    fn when_key_pressed_should_progress() {
+        let registers = [0x0;16];
+        const VX:u8=0x01;
+        const KEY:u8 = 0x12;
+
+        let mut memory = Memory::new();
+
+        let state = State {
+            registers,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDKEY(VX), 0x200, &mut memory, Some(KEY));
+
+        assert_eq!(None, new_state.opcode);
+        let registers = new_state.registers;
+
+        assert_eq!(KEY, registers[VX as usize]);
+    }
+
+    #[test]
+    fn it_should_load_delay_timer_in_vx() {
+        const VX:u8 = 0x04;
+        let registers = [0x0;16];
+        const DT:u8 = 0xFF;
+        let mut memory = Memory::new();
+
+        let state = State {
+            registers,
+            delay_timer: DT,
+            ..Default::default()
+        };
+
+        let new_state = handle_load_operands(state, LoadOp::LDVXDT(VX), 0x200, &mut memory, None);
+
+        assert_eq!(0xFF, new_state.registers[VX as usize]);
+    }
+
+    #[test]
+    fn it_should_load_vy_into_vx() {
+        const VX:u8 = 0xF;
+        const VY:u8 = 0xD;
+
+        let mut registers = [0x0;16];
+        registers[VY as usize] = 0xAE;
+        registers[VX as usize] = 0x01;
+
+        let mut memory = Memory::new();
+
+        let state = State { registers, ..Default::default()};
+
+        let new_state = handle_load_operands(state, LoadOp::LDXY(VX, VY), 0x200, &mut memory, None);
+
+        assert_eq!(0xAE, new_state.registers[VX as usize]);
+    }
+}
