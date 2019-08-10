@@ -98,8 +98,6 @@ pub fn main() -> Result<(), String> {
             .filter_map(get_key_mapped)
             .collect();
 
-        println!("Collecting: {:?}", keys);
-
         cpu_elapsed_ms += actual_elapsed;
         timer_elapsed_ms += actual_elapsed;
 

@@ -62,11 +62,11 @@ fn handle_skip_if_registers_not_equal(state: State, vx: u8, vy: u8, pc: u16) -> 
 fn handle_skip_on_keyboard(state: State, keycode: &[u8], vx: u8, pc: u16) -> State {
     let value = state.registers[vx as usize];
     let mut pc = pc;
+    println!("Waiting on: {}", value);
     match keycode.len() {
         0 => (),
         _ => {
             if keycode.contains(&value) {
-                println!("Correct key");
                 pc += 2;
             }
         }
