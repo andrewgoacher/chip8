@@ -98,14 +98,12 @@ pub fn main() -> Result<(), String> {
         cpu_elapsed_ms += actual_elapsed;
         timer_elapsed_ms += actual_elapsed;
 
-        let mut delay = state.delay_timer;
-        let mut sound = state.sound_timer;
-
-        if timer_elapsed_ms >= timer_hz_ms {
+        let (delay, sound) = if timer_elapsed_ms >= timer_hz_ms {
             timer_elapsed_ms = 0u128;
-            delay = delay_timer(&state);
-            sound = sound_timer(&state);
-        }
+            (delay_timer(&state),sound_timer(&state))
+        } else {
+            (state.delay_timer, state.sound_timer)
+        };
 
         if cpu_elapsed_ms >= cpu_hz_ms {
             cpu_elapsed_ms = 0u128;
