@@ -62,6 +62,7 @@ fn handle_skip_if_registers_not_equal(state: State, vx: u8, vy: u8, pc: u16) -> 
 fn handle_skip_on_keyboard(state: State, keycode: Option<u8>, vx: u8, pc: u16) -> State {
     let value = state.registers[vx as usize];
     let mut pc = pc;
+    println!("Waiting on keydown: {:?}", keycode);
     match keycode {
         None => (),
         Some(code) => {
@@ -81,6 +82,7 @@ fn handle_skip_on_keyboard(state: State, keycode: Option<u8>, vx: u8, pc: u16) -
 fn handle_skip_on_keyboard_up(state: State, keycode: Option<u8>, vx: u8, pc: u16) -> State {
     let value = state.registers[vx as usize];
     let mut pc = pc;
+    println!("Waiting on keyup: {:?}", keycode);
     match keycode {
         None => (),
         Some(code) => {
