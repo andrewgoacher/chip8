@@ -59,14 +59,14 @@ fn handle_skip_if_registers_not_equal(state: State, vx: u8, vy: u8, pc: u16) -> 
     }
 }
 
-fn handle_skip_on_keyboard(state: State, keycode: Option<u8>, vx: u8, pc: u16) -> State {
+fn handle_skip_on_keyboard(state: State, keycode: &[u8], vx: u8, pc: u16) -> State {
     let value = state.registers[vx as usize];
     let mut pc = pc;
-    println!("Waiting on keydown: {:?}", keycode);
-    match keycode {
-        None => (),
-        Some(code) => {
-            if value == code {
+    match keycode.len() {
+        0 => (),
+        _ => {
+            if keycode.contains(&value) {
+                println!("Correct key");
                 pc += 2;
             }
         }
@@ -79,14 +79,13 @@ fn handle_skip_on_keyboard(state: State, keycode: Option<u8>, vx: u8, pc: u16) -
     }
 }
 
-fn handle_skip_on_keyboard_up(state: State, keycode: Option<u8>, vx: u8, pc: u16) -> State {
+fn handle_skip_on_keyboard_up(state: State, keycode: &[u8], vx: u8, pc: u16) -> State {
     let value = state.registers[vx as usize];
     let mut pc = pc;
-    println!("Waiting on keyup: {:?}", keycode);
-    match keycode {
-        None => (),
-        Some(code) => {
-            if value != code {
+    match keycode.len() {
+        0 => {pc+=2;},
+        _ => {
+            if !keycode.contains(&value) {
                 pc += 2;
             }
         }
@@ -100,7 +99,7 @@ fn handle_skip_on_keyboard_up(state: State, keycode: Option<u8>, vx: u8, pc: u16
 }
 
 
-pub fn handle_skip_ops(state: State, op: SkipOp, pc: u16, keycode: Option<u8>) -> State {
+pub fn handle_skip_ops(state: State, op: SkipOp, pc: u16, keycode: &[u8]) -> State {
     match op {
         SkipOp::SE(vx, kk) => handle_skip_if_equal(state, vx, kk, pc),
         SkipOp::SNE(vx, kk) => handle_skip_if_not_equal(state, vx, kk, pc),
@@ -130,7 +129,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SE(VX, KK), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SE(VX, KK), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x200, new_state.pc);
     }
@@ -148,7 +147,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SE(VX, KK), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SE(VX, KK), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x202, new_state.pc);
     }
@@ -165,7 +164,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SNE(VX, KK), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SNE(VX, KK), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x200, new_state.pc);
     }
@@ -183,7 +182,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SNE(VX, KK), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SNE(VX, KK), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x202, new_state.pc);
     }
@@ -203,7 +202,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SEXY(VX, VY), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SEXY(VX, VY), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x202, new_state.pc);
     }
@@ -222,7 +221,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SEXY(VX, VY), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SEXY(VX, VY), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x200, new_state.pc);
     }
@@ -241,7 +240,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SNEXY(VX, VY), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SNEXY(VX, VY), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x202, new_state.pc);
     }
@@ -261,7 +260,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_skip_ops(state, SkipOp::SNEXY(VX, VY), 0x200, None);
+        let new_state = handle_skip_ops(state, SkipOp::SNEXY(VX, VY), 0x200, &Vec::new()[..]);
 
         assert_eq!(0x200, new_state.pc);
     }
@@ -279,9 +278,9 @@ mod tests {
             ..Default::default()
         };
 
-        let key = Some(5u8);
+        let key = 5u8;
 
-        let new_state = handle_skip_ops(state, SkipOp::SKP(VX), 0x200, key);
+        let new_state = handle_skip_ops(state, SkipOp::SKP(VX), 0x200, &vec![key][..]);
 
         assert_eq!(0x202, new_state.pc);   
     }
@@ -299,9 +298,9 @@ mod tests {
             ..Default::default()
         };
 
-        let key = Some(6u8);
+        let key = 6u8;
 
-        let new_state = handle_skip_ops(state, SkipOp::SKP(VX), 0x200, key);
+        let new_state = handle_skip_ops(state, SkipOp::SKP(VX), 0x200, &vec![key][..]);
 
         assert_eq!(0x200, new_state.pc);  
     }
@@ -319,9 +318,9 @@ mod tests {
             ..Default::default()
         };
 
-        let key = Some(6u8);
+        let key = 6u8;
 
-        let new_state = handle_skip_ops(state, SkipOp::SKNP(VX), 0x200, key);
+        let new_state = handle_skip_ops(state, SkipOp::SKNP(VX), 0x200, &vec![key][..]);
 
         assert_eq!(0x202, new_state.pc);  
     }
@@ -339,9 +338,9 @@ mod tests {
             ..Default::default()
         };
 
-        let key = Some(5u8);
+        let key = 5u8;
 
-        let new_state = handle_skip_ops(state, SkipOp::SKNP(VX), 0x200, key);
+        let new_state = handle_skip_ops(state, SkipOp::SKNP(VX), 0x200, &vec![key][..]);
 
         assert_eq!(0x200, new_state.pc);     
     }

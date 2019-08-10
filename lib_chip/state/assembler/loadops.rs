@@ -44,13 +44,13 @@ fn set_delay_timer(state: State, vx: u8, pc: u16) -> State {
     }
 }
 
-fn handle_load_key(state: State, vx: u8, pc: u16, keycode: Option<u8>, loadop: LoadOp) -> State {
+fn handle_load_key(state: State, vx: u8, pc: u16, keycode: &[u8], loadop: LoadOp) -> State {
     let mut registers = state.registers;
     let mut pc = pc-2;
-    let next_opcode = match keycode {
-      None => Some(OpCode::LD(loadop)),
-      Some(key_press) => {
-          registers[vx as usize] = key_press;
+    let next_opcode = match keycode.len() {
+      0 => Some(OpCode::LD(loadop)),
+      x => {
+          registers[vx as usize] = keycode[x-1];
           pc += 2;
           None
       }  
@@ -151,7 +151,8 @@ fn set_registers(state: State, pc: u16, vx: u8, memory: &Memory) -> State {
     }
 }
 
-pub fn handle_load_operands(state: State, load_op: LoadOp, pc: u16, memory: &mut Memory, keycode: Option<u8>) -> State {
+pub fn handle_load_operands(state: State, load_op: LoadOp, pc: u16,
+    memory: &mut Memory, keycode: &[u8]) -> State {
     match load_op {
         LoadOp::LD(vx, kk) => set_register(state, pc, vx, kk),
         LoadOp::LDV0XI(vx) => set_registers(state, pc, vx, memory),
@@ -181,7 +182,7 @@ mod tests {
         const VX:u8 = 0x4;
         const KK:u8 = 0xFF;
 
-        let new_state = handle_load_operands(state, LoadOp::LD(VX,KK), 0x299, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LD(VX,KK), 0x299, &mut memory, &Vec::new()[..]);
         let actual = new_state.registers[VX as usize];
 
         assert_eq!(KK, actual);
@@ -200,7 +201,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDV0XI(VX), 0x299, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDV0XI(VX), 0x299, &mut memory, &Vec::new()[..]);
         let registers = new_state.registers;
         let slice = &registers[..4];
         assert_eq!(mem, slice);
@@ -223,7 +224,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDIV0X(VX), 0x200, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDIV0X(VX), 0x200, &mut memory, &Vec::new()[..]);
         let registers = new_state.registers;
         let reg_slice = &registers[0..5];
         let mem = [memory.read(I), memory.read(I+1), memory.read(I+2),
@@ -246,7 +247,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDB(VX), 0x200, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDB(VX), 0x200, &mut memory, &Vec::new()[..]);
 
         let i = new_state.i;
         let (h,t,u) = (memory.read(i), memory.read(i+1), memory.read(i+2));
@@ -271,7 +272,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDF(VX), 0x200, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDF(VX), 0x200, &mut memory, &Vec::new()[..]);
 
         assert_eq!(u16::from(DATA) * 5, new_state.i);
     }
@@ -289,7 +290,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDSTVX(VX), 0x200, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDSTVX(VX), 0x200, &mut memory, &Vec::new()[..]);
         assert_eq!(0x12, new_state.sound_timer);
     }
 
@@ -305,7 +306,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDKEY(VX), 0x202, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDKEY(VX), 0x202, &mut memory, &Vec::new()[..]);
 
         assert_eq!(0x200, new_state.pc);
         assert_eq!(Some(OpCode::LD(LoadOp::LDKEY(VX))), new_state.opcode);
@@ -324,7 +325,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDKEY(VX), 0x200, &mut memory, Some(KEY));
+        let new_state = handle_load_operands(state, LoadOp::LDKEY(VX), 0x200, &mut memory, &vec![KEY][..]);
 
         assert_eq!(None, new_state.opcode);
         let registers = new_state.registers;
@@ -345,7 +346,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = handle_load_operands(state, LoadOp::LDVXDT(VX), 0x200, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDVXDT(VX), 0x200, &mut memory, &Vec::new()[..]);
 
         assert_eq!(0xFF, new_state.registers[VX as usize]);
     }
@@ -363,7 +364,7 @@ mod tests {
 
         let state = State { registers, ..Default::default()};
 
-        let new_state = handle_load_operands(state, LoadOp::LDXY(VX, VY), 0x200, &mut memory, None);
+        let new_state = handle_load_operands(state, LoadOp::LDXY(VX, VY), 0x200, &mut memory, &Vec::new()[..]);
 
         assert_eq!(0xAE, new_state.registers[VX as usize]);
     }

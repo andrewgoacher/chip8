@@ -71,14 +71,14 @@ impl State {
         }
     }
 
-    pub fn step(self, memory: &mut Memory, keycode: Option<u8>, 
+    pub fn step(self, memory: &mut Memory, keys: &[u8], 
         screen: &mut Vec<u8>) -> State {
         let opcode = match self.opcode {
             None => get_opcode(&self, memory),
             Some(code) => code
         };
 
-        assemble(self, memory, keycode, &mut screen[..], opcode)
+        assemble(self, memory, keys, &mut screen[..], opcode)
     }
 
     pub fn create_buffer(&self) -> Vec<u8> {

@@ -161,7 +161,7 @@ fn handle_logical(state: State, pc: u16, vx: u8, vy: u8, logical: Logical) -> St
     }
 }
 
-pub fn assemble(state: State, memory: &mut Memory, keycode: Option<u8>, screen: &mut [u8], opcode: OpCode) -> State {
+pub fn assemble(state: State, memory: &mut Memory, keycode: &[u8], screen: &mut [u8], opcode: OpCode) -> State {
     let pc: u16 = state.pc+2;
 
     match opcode {
@@ -196,7 +196,7 @@ mod tests {
         let mut screen = [0x0;200];
         let mut memory = Memory::new();
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::CLS);
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::CLS);
         assert!(new_state.clear_flag);
     }
 
@@ -206,7 +206,7 @@ mod tests {
         let mut screen = [0x0;200];
         let mut memory = Memory::new();
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::CALL(0x0123));
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::CALL(0x0123));
         
         assert_eq!(0x0123, new_state.pc);
 
@@ -230,7 +230,7 @@ mod tests {
         let mut screen = [0x0;200];
         let mut memory = Memory::new();
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::RET);
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::RET);
 
         assert_eq!(0xF334, new_state.pc);
         assert_eq!(0, new_state.stack_pointer);
@@ -252,7 +252,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUB(VX, VY));
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::SUB(VX, VY));
 
         let registers = new_state.registers;
         assert_eq!(0x0F, registers[VX as usize]);
@@ -276,7 +276,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUB(VX, VY));
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::SUB(VX, VY));
 
         let registers = new_state.registers;
         assert_eq!(0xF1, registers[VX as usize]);
@@ -301,7 +301,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUBN(VX, VY));
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::SUBN(VX, VY));
 
         let registers = new_state.registers;
 
@@ -326,7 +326,7 @@ mod tests {
             ..Default::default()
         };
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::SUBN(VX, VY));
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::SUBN(VX, VY));
 
         let registers = new_state.registers;
 
@@ -347,7 +347,7 @@ mod tests {
         const VX:u8 = 0xD;
         const KK:u8 = 0x12;
 
-        let new_state = assemble(state, &mut memory, None, &mut screen[..], OpCode::RND(VX, KK));
+        let new_state = assemble(state, &mut memory, &Vec::new()[..], &mut screen[..], OpCode::RND(VX, KK));
         let registers = new_state.registers;
         assert_ne!(0x0, registers[VX as usize]);
     }
@@ -368,7 +368,7 @@ mod tests {
             ..Default::default() 
         };
 
-        let new_state = assemble(state, &mut memory, None,
+        let new_state = assemble(state, &mut memory, &Vec::new()[..],
          &mut screen[..], OpCode::OR(VX, VY));
         
         let registers = new_state.registers;
@@ -391,7 +391,7 @@ mod tests {
             ..Default::default() 
         };
 
-        let new_state = assemble(state, &mut memory, None,
+        let new_state = assemble(state, &mut memory, &Vec::new()[..],
          &mut screen[..], OpCode::AND(VX, VY));
         
         let registers = new_state.registers;
@@ -414,7 +414,7 @@ mod tests {
             ..Default::default() 
         };
 
-        let new_state = assemble(state, &mut memory, None,
+        let new_state = assemble(state, &mut memory, &Vec::new()[..],
          &mut screen[..], OpCode::XOR(VX, VY));
         
         let registers = new_state.registers;

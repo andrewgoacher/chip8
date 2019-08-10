@@ -15,7 +15,8 @@
 //! # let mut memory = Memory::new();
 //! # memory.set_range(0x200, &vec![0x00, 0xE0][..]);
 //! # let mut screen: Vec<u8> = vec![0x0; (32*64) as usize];
-//! state = state.step(&mut memory, None, &mut screen);
+//! # let keys = vec![0x0];
+//! state = state.step(&mut memory, &keys[..], &mut screen);
 //! ```
 
 pub mod state;

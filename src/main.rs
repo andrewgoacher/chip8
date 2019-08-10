@@ -8,6 +8,7 @@ mod keyboard;
 
 use std::env;
 use std::time::SystemTime;
+use std::collections::HashSet;
 
 use lib_chip::{
     state::{State,sound_timer, delay_timer},
@@ -26,7 +27,8 @@ use opts::{set_opts, get_filename};
 use keyboard::get_key_mapped;
 
 
-
+use std::thread;
+use std::sync::mpsc;
 
 pub fn main() -> Result<(), String> {
     let args: Vec<String> = env::args().collect();
@@ -74,7 +76,6 @@ pub fn main() -> Result<(), String> {
     let now = SystemTime::now();
 
     'running: loop {
-        let mut key: Option<Keycode> = None;
         let elapsed = now.elapsed().expect("Elapsed time missing");
         let elapsed_ms = elapsed.as_nanos();
         let actual_elapsed = elapsed_ms - last_elapsed_ms;
@@ -86,14 +87,18 @@ pub fn main() -> Result<(), String> {
                 | Event::KeyDown { keycode: Some(Keycode::Escape), .. } => {
                     break 'running
                 },
-                Event::KeyDown { keycode: x, .. } =>{
-                    key=x;
-                    println!("SDL Key: {:?}", key);
-                } ,
-                    
                 _ => {}
             }
         }
+
+        // Create a set of pressed Keys.
+        let keys: Vec<u8> = event_pump.keyboard_state()
+            .pressed_scancodes()
+            .filter_map(Keycode::from_scancode)
+            .filter_map(get_key_mapped)
+            .collect();
+
+        println!("Collecting: {:?}", keys);
 
         cpu_elapsed_ms += actual_elapsed;
         timer_elapsed_ms += actual_elapsed;
@@ -114,7 +119,7 @@ pub fn main() -> Result<(), String> {
                 ..state
             };
 
-            state = state.step(&mut memory, get_key_mapped(key), &mut screen);
+            state = state.step(&mut memory, &keys[..], &mut screen);
 
             if state.clear_flag || state.draw_flag {
                 canvas.clear();
