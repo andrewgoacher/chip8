@@ -1,10 +1,7 @@
 mod display;
 mod assembler;
-
-
 use crate::memory::Memory;
 use crate::opcode::{OpCode, parser::parse_opcode};
-
 use assembler::assemble;
 
 #[derive(Debug)]
@@ -55,7 +52,7 @@ pub fn sound_timer(state: &State) -> u8 {
 }
 
 impl State {
-    pub fn new(w: u32, h: u32) -> State {
+    fn new(w: u32, h: u32) -> State {
         State {
             stack: [0; 16],
             registers: [0; 16],
@@ -75,12 +72,16 @@ impl State {
     }
 
     pub fn step(self, memory: &mut Memory, keycode: Option<u8>, 
-    screen: &mut Vec<u8>) -> State {
+        screen: &mut Vec<u8>) -> State {
         let opcode = match self.opcode {
             None => get_opcode(&self, memory),
             Some(code) => code
         };
 
         assemble(self, memory, keycode, &mut screen[..], opcode)
+    }
+
+    pub fn create_buffer(&self) -> Vec<u8> {
+        vec![0x0u8; (self.width * self.height) as usize]
     }
 }

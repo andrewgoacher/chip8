@@ -11,7 +11,7 @@
 //! # use lib_chip::state::State;
 //! # use lib_chip::rom::Rom;
 //! # use lib_chip::memory::Memory;
-//! let mut state = State::new(64, 32);
+//! let mut state:State = Default::default();
 //! # let mut memory = Memory::new();
 //! # memory.set_range(0x200, &vec![0x00, 0xE0][..]);
 //! # let mut screen: Vec<u8> = vec![0x0; (32*64) as usize];
