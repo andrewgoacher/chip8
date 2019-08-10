@@ -2,13 +2,17 @@ extern crate lib_chip;
 extern crate sdl2;
 extern crate getopts;
 
+mod draw;
+mod opts;
+mod keyboard;
+
 use std::env;
+use std::time::SystemTime;
 
 use lib_chip::{
     state::{State,sound_timer, delay_timer},
     rom::Rom,
-    memory::Memory,
-    keyboard::get_key_mapped
+    memory::Memory
 };
 
 use sdl2::pixels::PixelFormatEnum;
@@ -16,13 +20,10 @@ use sdl2::rect::Rect;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-use std::time::SystemTime;
 
-mod draw;
 use draw::draw;
-
-mod opts;
 use opts::{set_opts, get_filename};
+use keyboard::get_key_mapped;
 
 
 
