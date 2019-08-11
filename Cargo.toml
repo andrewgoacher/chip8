@@ -8,11 +8,5 @@ edition = "2018"
 name = "lib_chip"
 path = "lib_chip/lib.rs"
 
-[[bin]]
-name = "chip8"
-path = "src/main.rs"
-
 [dependencies]
 rand = "0.7.0"
-sdl2 = { version = "0.32.0", features = ["bundled", "static-link"] }
-getopts = "0.2"
